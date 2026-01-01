@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -62,6 +62,7 @@ class Completion(BaseModel):
     usage: Usage | None = None
     model: str | None = None
     finish_reason: str | None = None
+    data: dict[str, Any] | None = None  # Parsed JSON when structured_output=True
 
     @property
     def has_tool_calls(self) -> bool:

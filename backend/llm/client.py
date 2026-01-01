@@ -1,21 +1,25 @@
-from backend.llm.types import Message
+import json
 from collections.abc import AsyncIterator
 from typing import Any
 
 from openai import AsyncOpenAI, APIError, AuthenticationError as OpenAIAuthError
 from openai import RateLimitError as OpenAIRateLimitError
 
+from ..utils.config import config
+
 from .errors import (
     AuthenticationError,
     ContentFilterError,
     ContextLengthError,
     InvalidRequestError,
+    JSONParseError,
     LLMError,
     ModelNotFoundError,
     RateLimitError,
 )
+
 from .tools import Tool, ToolRegistry
-from .types import Completion, Function, ToolCall, Usage
+from .types import Completion, Function, Message, ToolCall, Usage
 
 
 class LLM:
@@ -34,7 +38,7 @@ class LLM:
     def __init__(
         self,
         api_key: str,
-        base_url: str = "https://api.openai.com/v1",
+        base_url: str = config.llm_base_url,
         model: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
@@ -67,6 +71,8 @@ class LLM:
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | dict[str, Any] | None = None,
         stop: list[str] | str | None = None,
+        structured_output: bool = False,
+        max_json_retries: int = 3,
         **kwargs: Any,
     ) -> Completion:
         """
@@ -80,13 +86,17 @@ class LLM:
             tools: Tool definitions for function calling.
             tool_choice: How to select tools ("auto", "none", or specific tool).
             stop: Stop sequences.
+            structured_output: If True, enforces JSON output and parses to dict.
+            max_json_retries: Retries on JSON parse failure (default: 3).
             **kwargs: Additional provider-specific parameters.
 
         Returns:
             Completion object with message and metadata.
+            If structured_output=True, the .data field contains the parsed dict.
 
         Raises:
             LLMError: On API errors.
+            JSONParseError: If structured_output=True and JSON parsing fails.
         """
         model = model or self._default_model
         if not model:
@@ -110,18 +120,47 @@ class LLM:
         if stop is not None:
             request_params["stop"] = stop
 
+        if structured_output:
+            kwargs["response_format"] = {"type": "json_object"}
+            json_hint = {"role": "system", "content": "You must output valid JSON."}
+            request_params["messages"] = list[dict[str, Any]](prepared_messages) + [
+                json_hint
+            ]
+
         request_params.update(kwargs)
 
-        try:
-            response = await self._client.chat.completions.create(**request_params)
-        except OpenAIAuthError as e:
-            raise AuthenticationError(str(e)) from e
-        except OpenAIRateLimitError as e:
-            raise RateLimitError(str(e)) from e
-        except APIError as e:
-            raise self._map_api_error(e) from e
+        attempts = max_json_retries if structured_output else 1
+        last_error: JSONParseError | None = None
 
-        return self._parse_response(response)
+        for attempt in range(attempts):
+            try:
+                response = await self._client.chat.completions.create(**request_params)
+            except OpenAIAuthError as e:
+                raise AuthenticationError(str(e)) from e
+            except OpenAIRateLimitError as e:
+                raise RateLimitError(str(e)) from e
+            except APIError as e:
+                raise self._map_api_error(e) from e
+
+            completion = self._parse_response(response)
+
+            if structured_output:
+                content = completion.message.content
+                if not content:
+                    last_error = JSONParseError("Empty response content")
+                    if attempt < attempts - 1:
+                        continue
+                    raise last_error
+
+                try:
+                    completion.data = json.loads(content)
+                except json.JSONDecodeError as e:
+                    last_error = JSONParseError(f"Invalid JSON: {e}")
+                    if attempt < attempts - 1:
+                        continue
+                    raise last_error from e
+
+            return completion
 
     async def stream(
         self,

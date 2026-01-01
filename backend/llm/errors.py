@@ -43,3 +43,9 @@ class ContextLengthError(LLMError):
     """Input exceeded model's context length."""
 
     pass
+
+
+class JSONParseError(LLMError):
+    """Response content could not be parsed as valid JSON."""
+
+    pass
