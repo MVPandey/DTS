@@ -1,0 +1,14 @@
+[project]
+name = "mcts"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.128.0",
+    "loguru>=0.7.3",
+    "openai>=2.14.0",
+    "pydantic>=2.12.5",
+    "pydantic-ai>=1.39.0",
+    "pytest>=9.0.2",
+]
