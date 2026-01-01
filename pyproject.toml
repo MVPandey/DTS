@@ -11,4 +11,5 @@ dependencies = [
     "pydantic>=2.12.5",
     "pydantic-ai>=1.39.0",
     "pytest>=9.0.2",
+    "ruff>=0.14.10",
 ]
