@@ -1,4 +1,4 @@
-"""MCTS Tree container and operations."""
+"""Dialogue Tree container and operations."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Iterator
 
 from pydantic import BaseModel, Field
 
-from backend.core.mcts.types import MCTSNode, NodeStatus
+from backend.core.dts.types import DialogueNode, NodeStatus
 
 
 def generate_node_id() -> str:
@@ -15,36 +15,36 @@ def generate_node_id() -> str:
     return str(uuid.uuid4())
 
 
-class MCTSTree(BaseModel):
-    """Container for MCTS tree with node management operations."""
+class DialogueTree(BaseModel):
+    """Container for dialogue tree with node management operations."""
 
     root_id: str
-    nodes: dict[str, MCTSNode] = Field(default_factory=dict)
+    nodes: dict[str, DialogueNode] = Field(default_factory=dict)
 
     model_config = {"arbitrary_types_allowed": True}
 
     @classmethod
-    def create(cls, root_node: MCTSNode) -> "MCTSTree":
+    def create(cls, root_node: DialogueNode) -> "DialogueTree":
         """Create a new tree with the given root node."""
         tree = cls(root_id=root_node.id)
         tree.nodes[root_node.id] = root_node
         return tree
 
-    def get(self, node_id: str) -> MCTSNode:
+    def get(self, node_id: str) -> DialogueNode:
         """Get a node by ID. Raises KeyError if not found."""
         if node_id not in self.nodes:
             raise KeyError(f"Node {node_id} not found in tree")
         return self.nodes[node_id]
 
-    def get_root(self) -> MCTSNode:
+    def get_root(self) -> DialogueNode:
         """Get the root node."""
         return self.get(self.root_id)
 
-    def add_node(self, node: MCTSNode) -> None:
+    def add_node(self, node: DialogueNode) -> None:
         """Add a node to the tree."""
         self.nodes[node.id] = node
 
-    def add_child(self, parent_id: str, child: MCTSNode) -> None:
+    def add_child(self, parent_id: str, child: DialogueNode) -> None:
         """Add a child node under a parent."""
         parent = self.get(parent_id)
         child.parent_id = parent_id
@@ -62,15 +62,15 @@ class MCTSTree(BaseModel):
                     parent.children.remove(node_id)
             del self.nodes[node_id]
 
-    def all_nodes(self) -> list[MCTSNode]:
+    def all_nodes(self) -> list[DialogueNode]:
         """Get all nodes in the tree."""
         return list(self.nodes.values())
 
-    def active_nodes(self) -> list[MCTSNode]:
+    def active_nodes(self) -> list[DialogueNode]:
         """Get all active (non-pruned, non-error) nodes."""
         return [n for n in self.nodes.values() if n.status == NodeStatus.ACTIVE]
 
-    def active_leaves(self) -> list[MCTSNode]:
+    def active_leaves(self) -> list[DialogueNode]:
         """Get all active leaf nodes (nodes with no children)."""
         return [
             n
@@ -78,15 +78,13 @@ class MCTSTree(BaseModel):
             if n.status == NodeStatus.ACTIVE and len(n.children) == 0
         ]
 
-    def leaves_at_depth(self, depth: int) -> list[MCTSNode]:
+    def leaves_at_depth(self, depth: int) -> list[DialogueNode]:
         """Get all leaf nodes at a specific depth."""
         return [
-            n
-            for n in self.nodes.values()
-            if n.depth == depth and len(n.children) == 0
+            n for n in self.nodes.values() if n.depth == depth and len(n.children) == 0
         ]
 
-    def path_to_root(self, node_id: str) -> list[MCTSNode]:
+    def path_to_root(self, node_id: str) -> list[DialogueNode]:
         """Get the path from a node to the root (inclusive)."""
         path = []
         current_id: str | None = node_id
@@ -96,7 +94,7 @@ class MCTSTree(BaseModel):
             current_id = node.parent_id
         return path
 
-    def path_from_root(self, node_id: str) -> list[MCTSNode]:
+    def path_from_root(self, node_id: str) -> list[DialogueNode]:
         """Get the path from root to a node (inclusive)."""
         return list(reversed(self.path_to_root(node_id)))
 
@@ -139,7 +137,7 @@ class MCTSTree(BaseModel):
         _prune_recursive(node_id)
         return count
 
-    def descendants(self, node_id: str) -> Iterator[MCTSNode]:
+    def descendants(self, node_id: str) -> Iterator[DialogueNode]:
         """Iterate over all descendants of a node (not including the node itself)."""
         node = self.get(node_id)
         for child_id in node.children:
@@ -157,14 +155,14 @@ class MCTSTree(BaseModel):
             return 0
         return max(n.depth for n in self.nodes.values())
 
-    def best_leaf(self) -> MCTSNode | None:
+    def best_leaf(self) -> DialogueNode | None:
         """Get the active leaf with the highest value_mean."""
         leaves = self.active_leaves()
         if not leaves:
             return None
         return max(leaves, key=lambda n: n.stats.value_mean)
 
-    def best_leaf_by_score(self) -> MCTSNode | None:
+    def best_leaf_by_score(self) -> DialogueNode | None:
         """Get the active leaf with the highest aggregated_score."""
         leaves = self.active_leaves()
         if not leaves:

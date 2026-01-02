@@ -1,4 +1,4 @@
-"""Data models for MCTS agent."""
+"""Data models for Dialogue Tree Search."""
 
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ class TokenStats:
 @dataclass
 class TokenTracker:
     """
-    Tracks token usage and costs across an MCTS run.
+    Tracks token usage and costs across a DTS run.
 
     Separates usage by phase for detailed analysis.
     """
@@ -244,8 +244,8 @@ class NodeStatus(str, Enum):
     ERROR = "error"
 
 
-class BranchStrategy(BaseModel):
-    """Output from conversation_tree_generator prompt."""
+class Strategy(BaseModel):
+    """A conversation strategy for branch exploration."""
 
     tagline: str
     description: str
@@ -298,7 +298,7 @@ class AggregatedScore(BaseModel):
 
 
 class NodeStats(BaseModel):
-    """MCTS statistics for a node."""
+    """Statistics for a dialogue node."""
 
     visits: int = 0
     value_sum: float = 0.0
@@ -307,8 +307,8 @@ class NodeStats(BaseModel):
     aggregated_score: float = 0.0
 
 
-class MCTSNode(BaseModel):
-    """A node in the MCTS tree."""
+class DialogueNode(BaseModel):
+    """A node in the dialogue tree representing a conversation state."""
 
     id: str
     parent_id: str | None = None
@@ -317,7 +317,7 @@ class MCTSNode(BaseModel):
     status: NodeStatus = NodeStatus.ACTIVE
 
     # Branch descriptor (strategy that led to this node)
-    strategy: BranchStrategy | None = None
+    strategy: Strategy | None = None
 
     # User intent that led to this branch (for forked nodes)
     user_intent: UserIntent | None = None
@@ -325,7 +325,7 @@ class MCTSNode(BaseModel):
     # Conversation trajectory to this node
     messages: list[Message] = Field(default_factory=list)
 
-    # Statistics for MCTS
+    # Statistics for scoring
     stats: NodeStats = Field(default_factory=NodeStats)
 
     # Pruning metadata
@@ -342,13 +342,13 @@ class TreeGeneratorOutput(BaseModel):
     coverage_rationale: str
 
 
-class MCTSRunResult(BaseModel):
-    """Result of running the MCTS agent."""
+class DTSRunResult(BaseModel):
+    """Result of running the Dialogue Tree Search."""
 
     best_node_id: str | None = None
     best_score: float = 0.0
     best_messages: list[Message] = Field(default_factory=list)
-    all_nodes: list[MCTSNode] = Field(default_factory=list)
+    all_nodes: list[DialogueNode] = Field(default_factory=list)
     pruned_count: int = 0
     total_rounds: int = 0
 
@@ -468,4 +468,4 @@ class MCTSRunResult(BaseModel):
         from pathlib import Path
 
         Path(path).write_text(self.to_json(), encoding="utf-8")
-        print(f"[MCTS:SAVE] Results saved to {path}")
+        print(f"[DTS:SAVE] Results saved to {path}")

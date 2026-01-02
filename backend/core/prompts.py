@@ -1000,9 +1000,15 @@ Respond with the next assistant message only. No meta-commentary, no JSON, no ex
             conversation_history=conversation_history,
             user_intent=user_intent is not None,
             user_intent_label=user_intent.get("label", "") if user_intent else "",
-            user_intent_description=user_intent.get("description", "") if user_intent else "",
-            user_intent_tone=user_intent.get("emotional_tone", "") if user_intent else "",
-            user_intent_stance=user_intent.get("cognitive_stance", "") if user_intent else "",
+            user_intent_description=user_intent.get("description", "")
+            if user_intent
+            else "",
+            user_intent_tone=user_intent.get("emotional_tone", "")
+            if user_intent
+            else "",
+            user_intent_stance=user_intent.get("cognitive_stance", "")
+            if user_intent
+            else "",
         )
 
     def assistant_continuation(
@@ -1056,7 +1062,7 @@ Respond with the next assistant message only. No meta-commentary, no JSON, no ex
 
         # Replace the {{#each}} block with formatted content
         template = self.COMPARATIVE_TRAJECTORY_JUDGE.replace(
-            "{{#each trajectories}}\n<trajectory id=\"{{this.id}}\" intent=\"{{this.intent_label}}\">\n{{this.history}}\n</trajectory>\n{{/each}}",
+            '{{#each trajectories}}\n<trajectory id="{{this.id}}" intent="{{this.intent_label}}">\n{{this.history}}\n</trajectory>\n{{/each}}',
             formatted_trajectories,
         )
 

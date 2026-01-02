@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.core.mcts.types import AggregatedScore
+from backend.core.dts.types import AggregatedScore
 
 
 def aggregate_majority_vote(
@@ -71,9 +71,7 @@ def aggregate_with_confidence_weighting(
 
     weights = {"low": 1.0, "medium": 2.0, "high": 3.0}
 
-    weighted_sum = sum(
-        s * weights.get(c, 1.0) for s, c in zip(scores, confidences)
-    )
+    weighted_sum = sum(s * weights.get(c, 1.0) for s, c in zip(scores, confidences))
     total_weight = sum(weights.get(c, 1.0) for c in confidences)
 
     return weighted_sum / total_weight if total_weight > 0 else 0.0
