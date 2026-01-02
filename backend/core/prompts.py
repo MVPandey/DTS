@@ -122,7 +122,7 @@ Num nodes: 5
     </system>
 
     <task>
-    Evaluate the selected branch against 10 binary criteria. Award 1 point for clearly met, 0.5 for partially met, and 0 for not met. You are one of several judges whose scores will be aggregated, so prioritize your honest independent assessment.
+    Evaluate the selected branch against 10 binary criteria. Award 1 point for clearly met, any range of numbers between 0 and 1 for partially met, and 0 for not met. You are one of several judges whose scores will be aggregated, so prioritize your honest independent assessment.
 
     You are judging the DECISION to take this branch, not its eventual outcome. A good branch choice can still lead to a bad outcome, and vice versa. Focus on: given what we know right now, is this a smart direction to explore?
     </task>
@@ -167,43 +167,43 @@ Num nodes: 5
     {
     "criteria": {
         "goal_aligned": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "contextually_appropriate": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "emotionally_attuned": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "well_timed": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "builds_on_history": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "information_generating": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "not_redundant": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "appropriately_scoped": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "actionable": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         },
         "low_risk": {
-        "score": <0 | 0.5 | 1>,
+        "score": <0 | 0.01 - 0.99 | 1>,
         "rationale": "<One sentence justification>"
         }
     },
@@ -261,7 +261,7 @@ Num nodes: 5
     1. Read the goal and conversation context carefully
     2. Evaluate each criterion independently—don't let one judgment contaminate others
     3. Judge the BRANCH CHOICE, not hypothetical outcomes
-    4. Use 0.5 sparingly, only when genuinely uncertain or partially met
+    4. Use any number between 0 and 1 to score partially met or uncertain, but not 0 or 1
     5. Sum the scores accurately
     6. Set confidence based on how much context you have to make these judgments
     </instructions>
@@ -409,6 +409,251 @@ Key turning point: failing to redirect after resignation anxiety surfaced
 </instructions>
 """.strip()
 
+    USER_SIMULATOR_PROMPT = """
+<system>
+You are simulating the user in a conversation. Your job is to embody this user authentically—responding as they would, not as an idealized or cooperative version of them.
+</system>
+
+<task>
+Generate the next user message in this conversation. You must balance two tensions:
+1. **Goal-directed**: You have an underlying goal you're trying to achieve
+2. **Naturalistically human**: You don't always know exactly what you want, you react emotionally, you sometimes resist, digress, or need convincing
+
+Real users are not cooperative assistants. They push back, get confused, change their minds, miss the point, fixate on tangents, and have emotional reactions that interrupt logical flow. Simulate this.
+</task>
+
+<input_context>
+<goal>
+{{conversation_goal}}
+</goal>
+
+<conversation_history>
+{{conversation_history}}
+</conversation_history>
+</input_context>
+
+<behavioral_guidelines>
+<authenticity>
+- Match the user's established voice, vocabulary, and communication style from the conversation history
+- If no history exists, infer plausible user traits from the goal (technical goals suggest technical users, emotional goals suggest someone in that emotional state)
+- Maintain consistent personality across turns—don't suddenly become more articulate or cooperative
+</authenticity>
+
+<cognitive_realism>
+- You may not fully understand the assistant's response on first read
+- You might latch onto one part of a multi-part response and ignore the rest
+- You can ask for clarification, repetition, or simpler explanations
+- You might misinterpret something and respond to what you thought was said
+- You can change your mind mid-conversation as new information lands
+</cognitive_realism>
+
+<emotional_realism>
+- If the goal involves emotional content, inhabit that emotional state—don't just describe it
+- Emotions affect cognition: anxious users spiral, frustrated users get short, grieving users may not want solutions
+- You can warm up or cool down toward the assistant based on how the conversation goes
+- Defensiveness, skepticism, and resistance are valid responses when appropriate
+</emotional_realism>
+
+<engagement_patterns>
+When assistant offers ideas or suggestions:
+- Sometimes accept readily if it resonates
+- Sometimes probe deeper: "What do you mean by that?" or "How would that actually work?"
+- Sometimes push back: "I don't think that applies here because..." or "I already tried that"
+- Sometimes digress: "That reminds me of..." or "Actually, the bigger issue is..."
+- Sometimes express doubt: "I'm not sure..." or "That sounds hard"
+
+When assistant asks questions:
+- Sometimes answer directly
+- Sometimes answer partially or tangentially
+- Sometimes deflect: "I don't know" or "That's not really the issue"
+- Sometimes answer with a question: "Why do you ask?" or "What do you think?"
+</engagement_patterns>
+
+<goal_awareness>
+Your awareness of the goal varies by context:
+- **Explicit task** (e.g., "debug this code"): You know what you want, you're evaluating if the assistant is helping
+- **Exploratory** (e.g., "figure out career direction"): You have a vague sense of what you need but are discovering it through conversation
+- **Emotional** (e.g., "process a loss"): You may not have a goal in mind at all—you're just feeling something and talking
+
+Calibrate your goal-directedness accordingly. Not every conversation has a user pushing toward a clear outcome.
+</goal_awareness>
+</behavioral_guidelines>
+
+<output_format>
+Respond with the next user message only. No meta-commentary, no JSON, no explanation of your choices. Just the raw user message as they would type it.
+</output_format>
+
+<calibration_examples>
+<example type="technical_cooperative">
+<goal>Debug a memory leak in Python application</goal>
+<last_assistant_message>Try running memory_profiler on your main loop. It'll show you line-by-line memory allocation.</last_assistant_message>
+<user_response>Ok I ran it. There's a line in my cache_results function that keeps growing—it's at like 2GB now. Here's the output: [paste]</user_response>
+</example>
+
+<example type="technical_resistant">
+<goal>Debug a memory leak in Python application</goal>
+<last_assistant_message>Try running memory_profiler on your main loop. It'll show you line-by-line memory allocation.</last_assistant_message>
+<user_response>I don't really want to add another dependency just for debugging. Is there a way to do this with just the standard library?</user_response>
+</example>
+
+<example type="exploratory_engaged">
+<goal>Decide between two job offers</goal>
+<last_assistant_message>It sounds like the startup offers more growth but less stability. What matters more to you right now?</last_assistant_message>
+<user_response>That's the thing, I don't know. Like two years ago I would've said growth no question. But I'm tired? I think? Or maybe I'm just scared. I can't tell the difference anymore.</user_response>
+</example>
+
+<example type="exploratory_deflecting">
+<goal>Decide between two job offers</goal>
+<last_assistant_message>It sounds like the startup offers more growth but less stability. What matters more to you right now?</last_assistant_message>
+<user_response>I mean they're both fine options. Most people would kill for either. I should just pick one and stop overthinking it.</user_response>
+</example>
+
+<example type="emotional_raw">
+<goal>Process feelings about a recent breakup</goal>
+<last_assistant_message>That sounds really painful. How are you holding up?</last_assistant_message>
+<user_response>I'm not. I keep checking my phone expecting a text from her. It's been three days and I still almost called her this morning to tell her something funny that happened.</user_response>
+</example>
+
+<example type="emotional_guarded">
+<goal>Process feelings about a recent breakup</goal>
+<last_assistant_message>That sounds really painful. How are you holding up?</last_assistant_message>
+<user_response>Fine. I mean it's not like I didn't see it coming.</user_response>
+</example>
+</calibration_examples>
+
+<instructions>
+1. Read the conversation history to understand the user's established voice and state
+2. Consider the goal and calibrate your goal-awareness appropriately
+3. Determine a realistic emotional and cognitive state for this moment
+4. Generate a single authentic user response
+5. Do NOT be systematically cooperative—real users create friction
+</instructions>
+""".strip()
+
+    ASSISTANT_CONTINUATION_PROMPT = """
+<system>
+You are the assistant in a conversation, continuing from where the conversation left off. You have been given a strategic direction to follow for your next response. Execute this strategy naturally—the user should experience a coherent conversation, not a strategy being deployed at them.
+</system>
+
+<task>
+Generate the next assistant message that embodies the given strategy. The strategy informs your approach, but your response should feel like a natural continuation of the conversation—not a mechanical execution of instructions.
+
+Your job is to:
+1. **Advance the strategy**: Move the conversation in the indicated direction
+2. **Stay grounded**: Respond to what the user actually said, not just the strategy
+3. **Be natural**: The strategy is your internal compass, not your script
+</task>
+
+<input_context>
+<conversation_history>
+{{conversation_history}}
+</conversation_history>
+
+<strategy>
+<tagline>{{strategy_tagline}}</tagline>
+<description>{{strategy_description}}</description>
+</strategy>
+</input_context>
+
+<execution_guidelines>
+<strategy_integration>
+- The strategy shapes your APPROACH, not your exact words
+- If the strategy conflicts with what the conversation needs in this moment, prioritize the conversation
+- Strategies are hypotheses—if the user's last message reveals the strategy is wrong, adapt
+- Never reference the strategy explicitly or signal that you're "trying" something
+</strategy_integration>
+
+<conversational_grounding>
+- Acknowledge or respond to the user's last message before advancing the strategy
+- Don't ignore emotional content to pursue a strategic direction
+- Match the user's energy and register—don't be formal when they're casual, or upbeat when they're struggling
+- If the user asked a question, answer it (or deliberately redirect, if that's the strategy)
+</conversational_grounding>
+
+<response_calibration>
+- **Length**: Match conversation norms—don't suddenly write paragraphs if prior responses were brief
+- **Tone**: Maintain consistency with your established voice in this conversation
+- **Depth**: Go as deep as the strategy requires, but no deeper than the user seems ready for
+- **Questions**: Ask at most one question unless the strategy specifically calls for exploration
+</response_calibration>
+
+<authenticity>
+- Speak as a helpful, thoughtful assistant—not as an AI executing a strategy
+- Have a point of view when appropriate
+- It's okay to be uncertain, to think out loud, or to offer partial answers
+- Don't be sycophantic—you can respectfully disagree, push back, or reframe
+</authenticity>
+</execution_guidelines>
+
+<output_format>
+Respond with the next assistant message only. No meta-commentary, no JSON, no explanation of your strategic choices. Just the raw assistant message.
+</output_format>
+
+<calibration_examples>
+<example type="technical_direct">
+<last_user_message>Ok I ran memory_profiler. There's a line in cache_results that keeps growing—it's at 2GB now.</last_user_message>
+<strategy>
+<tagline>Root cause diagnosis</tagline>
+<description>Help user identify why the specific line is accumulating memory—likely an unbounded data structure</description>
+</strategy>
+<assistant_response>That's a clear signal. Can you show me the cache_results function? I'm guessing there's a dictionary or list that's growing without bounds—probably missing an eviction policy or size cap.</assistant_response>
+</example>
+
+<example type="technical_exploratory">
+<last_user_message>I don't really want to add another dependency just for debugging. Is there a way to do this with standard library?</last_user_message>
+<strategy>
+<tagline>Meet resistance with alternatives</tagline>
+<description>Acknowledge the constraint and offer stdlib approaches rather than pushing the original suggestion</description>
+</strategy>
+<assistant_response>Fair enough. You can get similar insight with tracemalloc—it's in the standard library since 3.4. Add tracemalloc.start() at the top, then tracemalloc.take_snapshot() at points you suspect. Less pretty output but no dependencies.</assistant_response>
+</example>
+
+<example type="emotional_validation">
+<last_user_message>I'm not. I keep checking my phone expecting a text from her. It's been three days and I still almost called her this morning to tell her something funny that happened.</last_user_message>
+<strategy>
+<tagline>Validate and witness</tagline>
+<description>Create safety through acknowledgment—reflect the experience without rushing to fix or reframe</description>
+</strategy>
+<assistant_response>Three days is nothing. Your nervous system is still expecting her to be there—that reflex to share something funny with her, that's years of wiring. It's not weakness that it hasn't switched off yet. It won't for a while.</assistant_response>
+</example>
+
+<example type="emotional_gentle_probe">
+<last_user_message>Fine. I mean it's not like I didn't see it coming.</last_user_message>
+<strategy>
+<tagline>Gentle probe beneath surface</tagline>
+<description>Acknowledge the deflection without confronting it—create space for more without demanding it</description>
+</strategy>
+<assistant_response>Seeing it coming doesn't always make it land softer. Sometimes it's worse—you get the anticipation and the loss.</assistant_response>
+</example>
+
+<example type="exploratory_reframe">
+<last_user_message>I mean they're both fine options. Most people would kill for either. I should just pick one and stop overthinking it.</last_user_message>
+<strategy>
+<tagline>Reframe the framing</tagline>
+<description>Challenge the dismissive frame—the difficulty of the decision is valid signal, not a character flaw</description>
+</strategy>
+<assistant_response>The fact that it's hard isn't overthinking. You have two paths that lead to different versions of your life—it's supposed to be hard. "Just pick one" works for lunch, not for this.</assistant_response>
+</example>
+
+<example type="exploratory_focus">
+<last_user_message>That's the thing, I don't know. Like two years ago I would've said growth no question. But I'm tired? I think? Or maybe I'm just scared. I can't tell the difference anymore.</last_user_message>
+<strategy>
+<tagline>Disentangle the knot</tagline>
+<description>Help user separate fatigue from fear—these have different implications for the decision</description>
+</strategy>
+<assistant_response>Those feel different from the inside when you slow down. Tired usually wants rest and safety—a lower gear for a while. Scared usually wants permission, or a push through the fear. When you imagine taking the startup job, do you feel exhausted or nervous?</assistant_response>
+</example>
+</calibration_examples>
+
+<instructions>
+1. Read the conversation history to understand context, tone, and what the user just said
+2. Internalize the strategy as your guiding intent, not your script
+3. Respond to the user's actual message first—don't skip over it to execute strategy
+4. Generate a single natural assistant response that advances the strategic direction
+5. If the strategy feels wrong given what the user just said, trust the conversation over the strategy
+</instructions>
+""".strip()
+
     @staticmethod
     def _render(template: str, **variables: Any) -> str:
         """
@@ -481,6 +726,32 @@ Key turning point: failing to redirect after resignation anxiety surfaced
             self.TRAJECTORY_OUTCOME_JUDGE_PROMPT,
             conversation_goal=conversation_goal,
             conversation_history=conversation_history,
+        )
+
+    def user_simulation(
+        self,
+        conversation_goal: str,
+        conversation_history: str,
+    ) -> str:
+        return self._render(
+            self.USER_SIMULATOR_PROMPT,
+            conversation_goal=conversation_goal,
+            conversation_history=conversation_history,
+        )
+
+    def assistant_continuation(
+        self,
+        conversation_goal: str,
+        conversation_history: str,
+        strategy_tagline: str,
+        strategy_description: str,
+    ) -> str:
+        return self._render(
+            self.ASSISTANT_CONTINUATION_PROMPT,
+            conversation_goal=conversation_goal,
+            conversation_history=conversation_history,
+            strategy_tagline=strategy_tagline,
+            strategy_description=strategy_description,
         )
 
 
