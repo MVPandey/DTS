@@ -17,3 +17,5 @@ wheels/
 
 .claude/
 CLAUDE.md
+mcts_output.json
+dts_output.json

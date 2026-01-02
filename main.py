@@ -19,8 +19,8 @@ async def test_dts():
             goal="Identify a project idea that uses LLMs + multi-agent systems to create a fun and engaging game that cannot be done without agentic/LLMs. Avoid aggressive monetization (it'll be subscription based)",
             first_message="I want to design a monetizable game for the app-store that uses LLMs. Any ideas?",
             deep_research=False,
-            turns_per_branch=5,
-            user_intents_per_branch=4,
+            turns_per_branch=2,
+            user_intents_per_branch=2,
         ),
     )
 

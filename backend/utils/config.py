@@ -16,7 +16,10 @@ class Config(BaseSettings):
         default="https://openrouter.ai/api/v1", description="Base URL for embedding API"
     )
     embedding_api_key: SecretStr = Field(
-        ..., description="API key for embedding service", env="EMBEDDING_API_KEY"
+        ...,
+        description="API key for embedding service",
+        env="EMBEDDING_API_KEY",
+        default=llm_api_key.get_secret_value(),
     )
     embedding_model_name: str = Field(
         default="openai/text-embedding-3-small", description="Embedding model name"
