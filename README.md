@@ -92,10 +92,11 @@ LLM_NAME=minimax/minimax-m2.1
 import asyncio
 from backend.core.dts import DTSConfig, DTSEngine
 from backend.llm.client import LLM
+from backend.utils.config import config
 
 async def main():
     llm = LLM(
-        api_key="sk-...",
+        api_key=config.openai_api_key,
         base_url="https://openrouter.ai/api/v1",
         model="z.ai/glm-4.7"
     )
