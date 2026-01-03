@@ -38,7 +38,7 @@ class LLM:
     def __init__(
         self,
         api_key: str,
-        base_url: str = config.llm_base_url,
+        base_url: str = config.openai_base_url,
         model: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,

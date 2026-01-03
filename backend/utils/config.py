@@ -1,25 +1,25 @@
-from pydantic import Field, SecretStr, PostgresDsn
+from pydantic import Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    llm_base_url: str = Field(
-        default="https://openrouter.ai/api/v1", description="Base URL for LLM API"
+    openai_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        description="Base URL for LLM API",
     )
-    llm_api_key: SecretStr = Field(
-        ..., description="API key for LLM service", env="LLM_API_KEY"
+    openai_api_key: str = Field(
+        ...,
+        description="API key for LLM service",
     )
     llm_name: str = Field(default="minimax/minimax-m2.1", description="LLM model name")
     embedding_base_url: str = Field(
         default="https://openrouter.ai/api/v1", description="Base URL for embedding API"
     )
-    embedding_api_key: SecretStr = Field(
-        ...,
-        description="API key for embedding service",
-        env="EMBEDDING_API_KEY",
-        default=llm_api_key.get_secret_value(),
+    embedding_api_key: str = Field(
+        default="",
+        description="API key for embedding service (defaults to OPENAI_API_KEY if not set)",
     )
     embedding_model_name: str = Field(
         default="openai/text-embedding-3-small", description="Embedding model name"

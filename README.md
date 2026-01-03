@@ -77,10 +77,10 @@ Create `.env`:
 
 ```env
 # Required
-LLM_API_KEY=sk-or-v1-...
+OPENAI_API_KEY=sk-or-v1-...
 
 # Optional (defaults shown)
-LLM_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
 LLM_NAME=minimax/minimax-m2.1
 ```
 

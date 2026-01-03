@@ -6,8 +6,8 @@ from backend.llm.client import LLM
 from backend.utils.config import config
 
 llm = LLM(
-    api_key=config.llm_api_key.get_secret_value(),
-    base_url=config.llm_base_url,
+    api_key=config.openai_api_key,
+    base_url=config.openai_base_url,
     model="z-ai/glm-4.7",
 )
 
