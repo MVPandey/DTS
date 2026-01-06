@@ -43,11 +43,7 @@ from backend.core.dts.tree import (
     DialogueTree,
     generate_node_id,
 )
-from backend.core.dts.aggregator import (
-    aggregate_majority_vote,
-    aggregate_mean,
-    aggregate_with_confidence_weighting,
-)
+from backend.core.dts.aggregator import aggregate_majority_vote
 
 __all__ = [
     # Engine
@@ -76,6 +72,4 @@ __all__ = [
     "UserIntent",
     # Aggregation
     "aggregate_majority_vote",
-    "aggregate_mean",
-    "aggregate_with_confidence_weighting",
 ]
