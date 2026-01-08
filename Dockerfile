@@ -45,16 +45,15 @@ WORKDIR /app
 # Copy dependency files first (for caching)
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv pip install --system -e .
-
-# Copy application code
+# Copy application code (needed before install for editable mode)
 COPY backend/ ./backend/
 COPY main.py ./
 
+# Install dependencies
+RUN uv pip install --system -e .
+
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
-COPY --from=frontend-builder /app/frontend/public ./frontend/public
 
 # Expose port
 EXPOSE 8000

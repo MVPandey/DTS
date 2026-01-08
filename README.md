@@ -5,7 +5,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
-**An LLM-powered Monte Carlo Tree Search engine for multi-turn conversation optimization.**
+**An LLM-powered tree search engine for multi-turn conversation optimization.**
 
 DTS explores conversation strategies in parallel, simulates diverse user reactions, scores trajectories with multi-judge consensus, and prunes underperformers—finding optimal dialogue paths that single-shot LLM responses miss.
 
