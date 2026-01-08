@@ -1,14 +1,9 @@
 """Conversation simulation component for DTS."""
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any, Callable
-
-from backend.utils.logging import logger
 
 from tenacity import (
     retry,
@@ -17,29 +12,24 @@ from tenacity import (
     wait_exponential,
 )
 
-from backend.core.dts.types import DialogueNode, NodeStatus, Strategy, UserIntent
 from backend.core.dts.tree import generate_node_id
-from backend.core.dts.utils import emit_event, log_phase
+from backend.core.dts.types import DialogueNode, NodeStatus, Strategy, UserIntent
+from backend.core.dts.utils import create_event_emitter, log_phase
 from backend.core.prompts import prompts
 from backend.llm.types import Completion, Message
+from backend.utils.logging import logger
 
 if TYPE_CHECKING:
-    from backend.llm.client import LLM
     from backend.core.dts.tree import DialogueTree
+    from backend.llm.client import LLM
 
 
-# -----------------------------------------------------------------------------
-# Exceptions
-# -----------------------------------------------------------------------------
 class LLMEmptyResponseError(Exception):
     """Raised when LLM returns empty/null content after retries exhausted."""
 
     pass
 
 
-# -----------------------------------------------------------------------------
-# Constants
-# -----------------------------------------------------------------------------
 TERMINATION_SIGNALS = [
     "goodbye",
     "bye",
@@ -61,9 +51,6 @@ TERMINATION_SIGNALS = [
 ]
 
 
-# -----------------------------------------------------------------------------
-# Class: ConversationSimulator
-# -----------------------------------------------------------------------------
 class ConversationSimulator:
     """
     Simulates multi-turn conversations for branch expansion.
@@ -74,8 +61,6 @@ class ConversationSimulator:
     - Early termination detection
     - Parallel branch expansion with user intent forking
     """
-
-    # --- Initialization ---
 
     def __init__(
         self,
@@ -109,11 +94,9 @@ class ConversationSimulator:
         self.temperature = temperature
         self._sem = asyncio.Semaphore(max_concurrency)
         self._on_usage = on_usage
-        self._on_event = on_event
+        self._emit = create_event_emitter(on_event, logger)
         self.provider = provider
         self.reasoning_enabled = reasoning_enabled
-
-    # --- Public Methods ---
 
     async def expand_nodes(
         self,
@@ -239,8 +222,6 @@ class ConversationSimulator:
             logger, "FORK", f"Completed: {completed} | Failed: {failed}", indent=1
         )
         return expanded
-
-    # --- Private Methods ---
 
     async def _expand_linear_batch(
         self, nodes: list[DialogueNode], turns: int
@@ -499,11 +480,6 @@ class ConversationSimulator:
             return True
 
         return False
-
-    def _emit(self, event_type: str, data: dict[str, Any]) -> None:
-        """Emit an event if callback is set (fire-and-forget)."""
-        if self._on_event is not None:
-            asyncio.create_task(emit_event(self._on_event, event_type, data, logger))
 
     async def _call_llm(
         self, messages: list[Message], phase: str = "other"

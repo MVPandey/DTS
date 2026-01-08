@@ -112,9 +112,15 @@ graph TD
 - `turns_per_branch`: Conversation depth per branch (default: 5)
 - `max_concurrency`: Parallel LLM calls (default: 16)
 
-### User Intent Forking
+### User Intent Forking (Optional)
 
-Most dialogue systems assume a single "happy path" user response. DTS stress-tests strategies against **diverse user personas**:
+Most dialogue systems assume a single "happy path" user response. DTS can stress-test strategies against **diverse user personas** when enabled.
+
+**User Variability Mode:**
+- `user_variability=False` (default): Uses a fixed "healthily critical + engaged" persona for consistent, realistic testing
+- `user_variability=True`: Generates diverse user intents for robustness testing across user types
+
+When variability is enabled, possible user personas include:
 
 | Emotional Tone | Cognitive Stance | Example Behavior |
 |:---------------|:-----------------|:-----------------|
@@ -124,7 +130,7 @@ Most dialogue systems assume a single "happy path" user response. DTS stress-tes
 | `resistant` | `challenging` | Pushes back, disagrees |
 | `anxious` | `withdrawing` | Hesitant, wants to end conversation |
 
-Each strategy forks into K intent variants (default: 3), creating branches that prove robustness across user types.
+Each strategy can fork into K intent variants (configurable via `user_intents_per_branch`), creating branches that prove robustness across user types.
 
 **UserIntent structure:**
 ```python
@@ -272,7 +278,7 @@ sequenceDiagram
 
 | Service | Environment Variable | Required | Purpose |
 |:--------|:--------------------|:---------|:--------|
-| **LLM Provider** | `OPENAI_API_KEY` | **Yes** | Strategy generation, simulation, and judging |
+| **LLM Provider** | `OPENROUTER_API_KEY` | **Yes** | Strategy generation, simulation, and judging |
 | **Web Scraping** | `FIRECRAWL_API_KEY` | For Deep Research | Scrapes web pages for research context |
 | **Web Search** | `TAVILY_API_KEY` | For Deep Research | Searches the web for relevant sources |
 
@@ -298,13 +304,15 @@ sequenceDiagram
 | Variable | Default | Description |
 |:---------|:--------|:------------|
 | `OPENAI_BASE_URL` | `https://openrouter.ai/api/v1` | LLM API endpoint |
-| `LLM_NAME` | `z-ai/glm-4.7` | Default model for all phases |
-| `FAST_LLM` | `openrouter:bytedance-seed/seed-1.6-flash` | Fast model for research |
-| `SMART_LLM` | `openrouter:google/gemini-2.0-flash-001` | Smart model for complex tasks |
+| `LLM_NAME` | `minimax/minimax-m2.1` | Default model for all phases |
+| `FAST_LLM` | `openrouter:minimax/minimax-m2.1` | Fast model for research |
+| `SMART_LLM` | `openrouter:minimax/minimax-m2.1` | Smart model for complex tasks |
 | `STRATEGIC_LLM` | `openrouter:minimax/minimax-m2.1` | Strategic reasoning model |
-| `LLM_TIMEOUT` | `60` | Request timeout in seconds |
+| `LLM_TIMEOUT` | `120` | Request timeout in seconds |
 | `LLM_MAX_RETRIES` | `2` | Retry attempts on failure |
 | `MAX_CONCURRENCY` | `16` | Parallel LLM call limit |
+
+> **Note:** The default model `minimax/minimax-m2.1` is chosen for its excellent price/performance ratio. You can use any OpenRouter-compatible model for any task by overriding the model parameters in your configuration.
 
 ---
 
@@ -328,25 +336,34 @@ uv pip install -e .
 
 ### Configure Environment
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (see `.env.example`):
 
 ```env
-# Required
-OPENAI_API_KEY=sk-or-v1-your-openrouter-key
-
-# Recommended (defaults shown)
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-LLM_NAME=z-ai/glm-4.7
-
-# For Deep Research (optional but recommended)
-FIRECRAWL_API_KEY=fc-your-firecrawl-key
+# Required - API Keys
+OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key
 TAVILY_API_KEY=tvly-your-tavily-key
+FIRECRAWL_API_KEY=fc-your-firecrawl-key
 
-# Deep Research Models
-FAST_LLM=openrouter:bytedance-seed/seed-1.6-flash
-SMART_LLM=openrouter:google/gemini-2.0-flash-001
+# LLM models (minimax-m2.1 recommended for price/performance)
+FAST_LLM=openrouter:minimax/minimax-m2.1
+SMART_LLM=openrouter:minimax/minimax-m2.1
 STRATEGIC_LLM=openrouter:minimax/minimax-m2.1
+SMART_TOKEN_LIMIT=32000
+
+# Deep research parameters
+DEEP_RESEARCH_BREADTH=3
+DEEP_RESEARCH_DEPTH=2
+DEEP_RESEARCH_CONCURRENCY=4
+
+# Report comprehensiveness (higher = more detailed)
+TOTAL_WORDS=12000
+MAX_SUBTOPICS=8
+MAX_ITERATIONS=5
+MAX_SEARCH_RESULTS=10
+REPORT_FORMAT=markdown
 ```
+
+> **Model flexibility:** You can use any model available on OpenRouter for any task. The default `minimax/minimax-m2.1` offers an excellent balance of cost and capability, but feel free to swap in `anthropic/claude-3-opus`, `openai/gpt-4o`, or any other model for specific phases.
 
 ---
 
@@ -464,11 +481,11 @@ from backend.llm.client import LLM
 from backend.utils.config import config
 
 async def main():
-    # Initialize LLM client
+    # Initialize LLM client (uses minimax-m2.1 by default for best price/performance)
     llm = LLM(
-        api_key=config.openai_api_key,
+        api_key=config.openrouter_api_key,
         base_url=config.openai_base_url,
-        model="z-ai/glm-4.7",
+        model="minimax/minimax-m2.1",  # Or any OpenRouter model
     )
 
     # Configure the search
@@ -477,7 +494,8 @@ async def main():
         first_message="Hi, I'd like to discuss our renewal pricing.",
         init_branches=6,           # 6 initial strategies
         turns_per_branch=5,        # 5-turn conversations
-        user_intents_per_branch=3, # Fork into 3 user types
+        user_intents_per_branch=3, # Fork into 3 user persona variants
+        user_variability=False,    # Use fixed "healthily critical" persona (default)
         scoring_mode="comparative", # Force-rank siblings
         prune_threshold=6.5,       # Minimum score to survive
         deep_research=True,        # Enable research context
@@ -529,6 +547,7 @@ Once the server is running:
 | `init_branches` | `int` | `6` | Number of initial strategies to generate |
 | `turns_per_branch` | `int` | `5` | Conversation depth (assistant+user turns) |
 | `user_intents_per_branch` | `int` | `3` | User persona variants per strategy |
+| `user_variability` | `bool` | `False` | Generate diverse user intents. When False, uses fixed "healthily critical + engaged" persona |
 | `scoring_mode` | `str` | `"comparative"` | `"comparative"` or `"absolute"` |
 | `prune_threshold` | `float` | `6.5` | Minimum score to survive (0-10 scale) |
 | `keep_top_k` | `int \| None` | `None` | Hard cap on survivors per round |
@@ -537,6 +556,8 @@ Once the server is running:
 | `max_concurrency` | `int` | `16` | Parallel LLM call limit |
 | `temperature` | `float` | `0.7` | Generation temperature |
 | `judge_temperature` | `float` | `0.3` | Judge temperature (lower = more consistent) |
+| `reasoning_enabled` | `bool` | `False` | Enable reasoning tokens for LLM calls (increases cost but may improve quality) |
+| `provider` | `str \| None` | `None` | Provider preference for OpenRouter (e.g., "Fireworks") |
 
 ### Per-Phase Model Overrides
 
@@ -663,7 +684,7 @@ The included frontend (`frontend/index.html`) provides real-time visualization:
 - **Configuration Panel**: Set goal, branches, turns, rounds, and model settings
 - **Deep Research Toggle**: Enable/disable GPT-Researcher integration
 - **Reasoning Mode**: Auto-detect or manually set reasoning effort
-- **User Variability**: Toggle between diverse user personas or fixed behavior
+- **User Variability Toggle**: Switch between fixed "healthily critical" persona (default) or diverse user personas for robustness testing
 - **Live Progress**: Watch strategies generate and branches expand
 - **Branch Browser**: Explore all trajectories with full transcripts
 - **Score Details**: See individual judge scores and critiques
@@ -821,7 +842,7 @@ print(result.token_usage)
 
 | Error | Cause | Solution |
 |:------|:------|:---------|
-| `AuthenticationError` | Invalid API key | Check `OPENAI_API_KEY` in `.env` |
+| `AuthenticationError` | Invalid API key | Check `OPENROUTER_API_KEY` in `.env` |
 | `RateLimitError` | Too many requests | Lower `max_concurrency`, add delays |
 | `ContextLengthError` | Conversation too long | Reduce `turns_per_branch` |
 | `ValueError: FIRECRAWL_API_KEY required` | Missing research key | Add key or set `deep_research=False` |

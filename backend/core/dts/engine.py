@@ -1,19 +1,15 @@
 """Dialogue Tree Search Engine - Main orchestrator."""
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import asyncio
-from typing import Callable, Awaitable
+from typing import TYPE_CHECKING, Callable
 
-from backend.core.dts.config import DTSConfig
-from backend.utils.logging import logger
 from backend.core.dts.components.evaluator import TrajectoryEvaluator
-from backend.core.dts.components.generator import StrategyGenerator
+from backend.core.dts.components.generator import FIXED_INTENT, StrategyGenerator
 from backend.core.dts.components.researcher import DeepResearcher
 from backend.core.dts.components.simulator import ConversationSimulator
+from backend.core.dts.config import DTSConfig
 from backend.core.dts.tree import DialogueTree, generate_node_id
 from backend.core.dts.types import (
     AggregatedScore,
@@ -25,17 +21,14 @@ from backend.core.dts.types import (
 from backend.core.dts.utils import emit_event, log_phase
 from backend.llm.client import LLM
 from backend.llm.types import Completion, Message
+from backend.utils.logging import logger
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
+    EventCallback = Callable[[str, dict], Awaitable[None]]
 
 
-# -----------------------------------------------------------------------------
-# Type Aliases
-# -----------------------------------------------------------------------------
-EventCallback = Callable[[str, dict], Awaitable[None]]
-
-
-# -----------------------------------------------------------------------------
-# Class: DTSEngine
-# -----------------------------------------------------------------------------
 class DTSEngine:
     """
     Dialogue Tree Search Engine.
@@ -59,8 +52,6 @@ class DTSEngine:
         )
         result = await engine.run(rounds=2)
     """
-
-    # --- Initialization ---
 
     def __init__(
         self,
@@ -133,8 +124,6 @@ class DTSEngine:
         self._tree: DialogueTree | None = None
         self._event_callback: EventCallback | None = None
         self._research_report: str | None = None
-
-    # --- Public Methods ---
 
     def set_event_callback(self, callback: EventCallback) -> None:
         """
@@ -267,8 +256,6 @@ class DTSEngine:
                 generate_intents_fn = self._generator.generate_intents
             else:
                 # Use fixed "healthily critical + engaged" persona (no API call)
-                from backend.core.dts.components.generator import FIXED_INTENT
-
                 intents_per_node = 1
 
                 async def fixed_intent_fn(history: list, count: int) -> list:
@@ -297,9 +284,7 @@ class DTSEngine:
                         "depth": node.depth,
                         "status": node.status.value,
                         "strategy": node.strategy.tagline if node.strategy else None,
-                        "user_intent": node.user_intent.label
-                        if node.user_intent
-                        else None,
+                        "user_intent": node.intent_label,
                         "message_count": len(node.messages),
                     },
                 )
@@ -333,12 +318,11 @@ class DTSEngine:
             for node in expanded:
                 if node.id in scores:
                     score = scores[node.id]
-                    strategy = node.strategy.tagline if node.strategy else "unknown"
-                    intent = f" [{node.user_intent.label}]" if node.user_intent else ""
+                    intent_str = f" [{node.intent_label}]" if node.intent_label else ""
                     log_phase(
                         logger,
                         "JUDGE",
-                        f"'{strategy}'{intent}: {score.aggregated_score:.1f}/10",
+                        f"'{node.strategy_label}'{intent_str}: {score.aggregated_score:.1f}/10",
                         indent=1,
                     )
                     # Emit score update
@@ -402,9 +386,13 @@ class DTSEngine:
             )
 
             for node in survivors:
-                strategy = node.strategy.tagline if node.strategy else "unknown"
-                intent = f" [{node.user_intent.label}]" if node.user_intent else ""
-                log_phase(logger, "PRUNE", f"Survivor: '{strategy}'{intent}", indent=2)
+                intent_str = f" [{node.intent_label}]" if node.intent_label else ""
+                log_phase(
+                    logger,
+                    "PRUNE",
+                    f"Survivor: '{node.strategy_label}'{intent_str}",
+                    indent=2,
+                )
 
         # Find best
         best_node = tree.best_leaf_by_score()
@@ -412,11 +400,10 @@ class DTSEngine:
         logger.info("=" * 60)
         log_phase(logger, "DONE", "Search complete!")
         if best_node:
-            best_strategy = best_node.strategy.tagline if best_node.strategy else "root"
             log_phase(
                 logger,
                 "DONE",
-                f"Best: '{best_strategy}' with score {best_node.stats.aggregated_score:.1f}/10",
+                f"Best: '{best_node.strategy_label}' with score {best_node.stats.aggregated_score:.1f}/10",
             )
         logger.info("=" * 60)
 
@@ -429,9 +416,7 @@ class DTSEngine:
                 "phase": "complete",
                 "message": "Search complete!",
                 "best_score": best_node.stats.aggregated_score if best_node else 0.0,
-                "best_strategy": best_node.strategy.tagline
-                if best_node and best_node.strategy
-                else None,
+                "best_strategy": best_node.strategy_label if best_node else None,
             },
         )
 
@@ -445,8 +430,6 @@ class DTSEngine:
             total_rounds=rounds,
             research_report=self._research_report,
         )
-
-    # --- Private Methods ---
 
     def _emit(self, event_type: str, data: dict) -> None:
         """Emit an event if callback is set (fire-and-forget)."""

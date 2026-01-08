@@ -1,14 +1,16 @@
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 import json
+import re
 from collections.abc import AsyncIterator
 from typing import Any
 
-from openai import AsyncOpenAI, APIError, AuthenticationError as OpenAIAuthError
+from openai import (
+    APIError,
+    AsyncOpenAI,
+    AuthenticationError as OpenAIAuthError,
+    RateLimitError as OpenAIRateLimitError,
+)
 
 from backend.utils.logging import logger
-from openai import RateLimitError as OpenAIRateLimitError
 
 from ..utils.config import config
 from .errors import (
@@ -24,11 +26,6 @@ from .errors import (
 )
 from .tools import Tool, ToolRegistry
 from .types import Completion, Function, Message, ToolCall, Usage
-
-
-# -----------------------------------------------------------------------------
-# Class: LLM
-# -----------------------------------------------------------------------------
 
 
 class LLM:
@@ -131,14 +128,9 @@ class LLM:
             stop=stop,
         )
 
-        # Build extra_body for OpenRouter-specific options (provider, reasoning)
-        extra_body: dict[str, Any] = kwargs.pop("extra_body", {})
-        if provider is not None:
-            order = [provider] if isinstance(provider, str) else provider
-            extra_body["provider"] = {"order": order, "allow_fallbacks": True}
-        # Only send reasoning param when enabled (some models error if reasoning: false)
-        if reasoning_enabled:
-            extra_body["reasoning"] = {"enabled": True}
+        extra_body = self._build_extra_body(
+            provider, reasoning_enabled, kwargs.pop("extra_body", {})
+        )
         if extra_body:
             kwargs["extra_body"] = extra_body
 
@@ -258,14 +250,9 @@ class LLM:
             stream=True,
         )
 
-        # Build extra_body for OpenRouter-specific options (provider, reasoning)
-        extra_body: dict[str, Any] = kwargs.pop("extra_body", {})
-        if provider is not None:
-            order = [provider] if isinstance(provider, str) else provider
-            extra_body["provider"] = {"order": order, "allow_fallbacks": True}
-        # Only send reasoning param when enabled (some models error if reasoning: false)
-        if reasoning_enabled:
-            extra_body["reasoning"] = {"enabled": True}
+        extra_body = self._build_extra_body(
+            provider, reasoning_enabled, kwargs.pop("extra_body", {})
+        )
         if extra_body:
             kwargs["extra_body"] = extra_body
 
@@ -374,6 +361,21 @@ class LLM:
             params["stop"] = stop
         return params
 
+    def _build_extra_body(
+        self,
+        provider: str | list[str] | None,
+        reasoning_enabled: bool | None,
+        existing: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Build extra_body dict for OpenRouter-specific options."""
+        extra_body = existing or {}
+        if provider is not None:
+            order = [provider] if isinstance(provider, str) else provider
+            extra_body["provider"] = {"order": order, "allow_fallbacks": True}
+        if reasoning_enabled:
+            extra_body["reasoning"] = {"enabled": True}
+        return extra_body
+
     def _prepare_messages(
         self, messages: list[Message] | Message | str
     ) -> list[dict[str, Any]]:
@@ -452,18 +454,12 @@ class LLM:
 
     def _strip_reasoning_tags(self, content: str) -> str:
         """Strip reasoning tags (e.g., <think>...</think>) from content."""
-        import re
-
-        # Remove <think>...</think> blocks (including multiline)
         content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
-        # Remove <reasoning>...</reasoning> blocks
         content = re.sub(r"<reasoning>.*?</reasoning>", "", content, flags=re.DOTALL)
         return content.strip()
 
     def _extract_json(self, content: str) -> str:
         """Extract JSON from content, handling markdown code blocks."""
-        import re
-
         # Try to extract from markdown code blocks first
         # Match ```json ... ``` or ``` ... ```
         json_block = re.search(r"```(?:json)?\s*([\s\S]*?)```", content)

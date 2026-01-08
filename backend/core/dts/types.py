@@ -1,8 +1,5 @@
 """Data models for Dialogue Tree Search."""
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import json
@@ -16,10 +13,6 @@ from pydantic import BaseModel, Field
 
 from backend.llm.types import Message, Usage
 from backend.utils.logging import logger
-
-# -----------------------------------------------------------------------------
-# Pricing Models
-# -----------------------------------------------------------------------------
 
 
 @dataclass
@@ -113,6 +106,17 @@ class TokenStats:
         self.request_count += other.request_count
 
 
+# Phase names used for token tracking
+TOKEN_PHASES = (
+    "strategy_generation",
+    "intent_generation",
+    "user_simulation",
+    "assistant_generation",
+    "judging",
+    "research",
+)
+
+
 @dataclass
 class TokenTracker:
     """
@@ -159,26 +163,12 @@ class TokenTracker:
     @property
     def total_input_tokens(self) -> int:
         """Total input tokens across all phases."""
-        return (
-            self.strategy_generation.input_tokens
-            + self.intent_generation.input_tokens
-            + self.user_simulation.input_tokens
-            + self.assistant_generation.input_tokens
-            + self.judging.input_tokens
-            + self.research.input_tokens
-        )
+        return sum(getattr(self, phase).input_tokens for phase in TOKEN_PHASES)
 
     @property
     def total_output_tokens(self) -> int:
         """Total output tokens across all phases."""
-        return (
-            self.strategy_generation.output_tokens
-            + self.intent_generation.output_tokens
-            + self.user_simulation.output_tokens
-            + self.assistant_generation.output_tokens
-            + self.judging.output_tokens
-            + self.research.output_tokens
-        )
+        return sum(getattr(self, phase).output_tokens for phase in TOKEN_PHASES)
 
     @property
     def total_tokens(self) -> int:
@@ -188,14 +178,7 @@ class TokenTracker:
     @property
     def total_requests(self) -> int:
         """Total LLM requests made."""
-        return (
-            self.strategy_generation.request_count
-            + self.intent_generation.request_count
-            + self.user_simulation.request_count
-            + self.assistant_generation.request_count
-            + self.judging.request_count
-            + self.research.request_count
-        )
+        return sum(getattr(self, phase).request_count for phase in TOKEN_PHASES)
 
     @property
     def total_cost(self) -> float:
@@ -234,40 +217,23 @@ class TokenTracker:
                 "total_cost_usd": round(self.total_cost, 6),
             },
             "by_model": by_model_dict,
-            "by_phase": {
-                "strategy_generation": {
-                    "input_tokens": self.strategy_generation.input_tokens,
-                    "output_tokens": self.strategy_generation.output_tokens,
-                    "requests": self.strategy_generation.request_count,
-                },
-                "intent_generation": {
-                    "input_tokens": self.intent_generation.input_tokens,
-                    "output_tokens": self.intent_generation.output_tokens,
-                    "requests": self.intent_generation.request_count,
-                },
-                "user_simulation": {
-                    "input_tokens": self.user_simulation.input_tokens,
-                    "output_tokens": self.user_simulation.output_tokens,
-                    "requests": self.user_simulation.request_count,
-                },
-                "assistant_generation": {
-                    "input_tokens": self.assistant_generation.input_tokens,
-                    "output_tokens": self.assistant_generation.output_tokens,
-                    "requests": self.assistant_generation.request_count,
-                },
-                "judging": {
-                    "input_tokens": self.judging.input_tokens,
-                    "output_tokens": self.judging.output_tokens,
-                    "requests": self.judging.request_count,
-                },
-                "research": {
-                    "input_tokens": self.research.input_tokens,
-                    "output_tokens": self.research.output_tokens,
-                    "requests": self.research.request_count,
-                    "external_cost_usd": round(self.research_cost_usd, 6),
-                },
-            },
+            "by_phase": self._build_phase_dict(),
         }
+
+    def _build_phase_dict(self) -> dict[str, dict]:
+        """Build per-phase statistics dictionary."""
+        result = {}
+        for phase in TOKEN_PHASES:
+            stats: TokenStats = getattr(self, phase)
+            phase_data = {
+                "input_tokens": stats.input_tokens,
+                "output_tokens": stats.output_tokens,
+                "requests": stats.request_count,
+            }
+            if phase == "research":
+                phase_data["external_cost_usd"] = round(self.research_cost_usd, 6)
+            result[phase] = phase_data
+        return result
 
     def print_summary(self) -> None:
         """Print a formatted summary of token usage and costs."""
@@ -310,18 +276,19 @@ class TokenTracker:
 
         # Per-phase breakdown
         print("\nBy Phase:")
-        phases = [
-            ("Strategy Generation", self.strategy_generation),
-            ("Intent Generation", self.intent_generation),
-            ("User Simulation", self.user_simulation),
-            ("Assistant Generation", self.assistant_generation),
-            ("Judging", self.judging),
-            ("Research", self.research),
-        ]
-        for name, stats in phases:
+        phase_names = {
+            "strategy_generation": "Strategy Generation",
+            "intent_generation": "Intent Generation",
+            "user_simulation": "User Simulation",
+            "assistant_generation": "Assistant Generation",
+            "judging": "Judging",
+            "research": "Research",
+        }
+        for phase in TOKEN_PHASES:
+            stats: TokenStats = getattr(self, phase)
             if stats.request_count > 0:
                 print(
-                    f"  {name:<22} | {stats.request_count:>4} reqs | "
+                    f"  {phase_names[phase]:<22} | {stats.request_count:>4} reqs | "
                     f"{stats.input_tokens:>8,} in | {stats.output_tokens:>8,} out"
                 )
 
@@ -335,11 +302,6 @@ class TokenTracker:
         print("=" * 60)
 
 
-# -----------------------------------------------------------------------------
-# Enums
-# -----------------------------------------------------------------------------
-
-
 class NodeStatus(str, Enum):
     """Status of a tree node."""
 
@@ -347,11 +309,6 @@ class NodeStatus(str, Enum):
     PRUNED = "pruned"
     TERMINAL = "terminal"
     ERROR = "error"
-
-
-# -----------------------------------------------------------------------------
-# Strategy & Intent Models
-# -----------------------------------------------------------------------------
 
 
 class Strategy(BaseModel):
@@ -369,11 +326,6 @@ class UserIntent(BaseModel):
     description: str
     emotional_tone: str  # engaged, resistant, confused, skeptical, enthusiastic, deflecting, anxious, neutral
     cognitive_stance: str  # accepting, questioning, challenging, exploring, withdrawing
-
-
-# -----------------------------------------------------------------------------
-# Evaluation Models
-# -----------------------------------------------------------------------------
 
 
 class CriterionScore(BaseModel):
@@ -423,11 +375,6 @@ class AggregatedScore(BaseModel):
         )
 
 
-# -----------------------------------------------------------------------------
-# Node Models
-# -----------------------------------------------------------------------------
-
-
 class NodeStats(BaseModel):
     """Statistics for a dialogue node."""
 
@@ -468,6 +415,16 @@ class DialogueNode(BaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
 
+    @property
+    def strategy_label(self) -> str:
+        """Get strategy tagline or 'unknown'."""
+        return self.strategy.tagline if self.strategy else "unknown"
+
+    @property
+    def intent_label(self) -> str | None:
+        """Get user intent label or None."""
+        return self.user_intent.label if self.user_intent else None
+
     def update_with_evaluation(
         self, score: AggregatedScore, critiques: dict | None = None
     ) -> None:
@@ -476,11 +433,6 @@ class DialogueNode(BaseModel):
         self.stats.aggregated_score = score.aggregated_score
         if critiques:
             self.stats.critiques = critiques
-
-
-# -----------------------------------------------------------------------------
-# Output Models
-# -----------------------------------------------------------------------------
 
 
 class TreeGeneratorOutput(BaseModel):

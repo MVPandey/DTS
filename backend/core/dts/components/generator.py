@@ -1,27 +1,22 @@
 """Strategy and intent generation component for DTS."""
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any, Callable
 
 from backend.core.dts.retry import llm_retry
-from backend.utils.logging import logger
 from backend.core.dts.types import Strategy, UserIntent
 from backend.core.dts.utils import format_message_history
 from backend.core.prompts import prompts
 from backend.llm.types import Message
+from backend.utils.logging import logger
 
 if TYPE_CHECKING:
     from backend.llm.client import LLM
 
 
-# -----------------------------------------------------------------------------
-# Fixed Intent (used when user_variability=False)
-# -----------------------------------------------------------------------------
+# Default intent used when user_variability=False
 FIXED_INTENT = UserIntent(
     id="fixed_engaged_critic",
     label="Engaged Critic",
@@ -31,9 +26,6 @@ FIXED_INTENT = UserIntent(
 )
 
 
-# -----------------------------------------------------------------------------
-# Class: StrategyGenerator
-# -----------------------------------------------------------------------------
 class StrategyGenerator:
     """
     Generates conversation strategies and user intents.
@@ -157,8 +149,6 @@ class StrategyGenerator:
                 logger.warning(f"Failed to parse intent: {e}")
 
         return intents
-
-    # --- Private Methods ---
 
     async def _call_llm_json(
         self, system_prompt: str, user_prompt: str, phase: str = "other"

@@ -1,8 +1,5 @@
 """Shared utilities for the DTS module."""
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import asyncio
@@ -13,9 +10,6 @@ if TYPE_CHECKING:
     from backend.llm.types import Message
 
 
-# -----------------------------------------------------------------------------
-# Logging Utilities
-# -----------------------------------------------------------------------------
 def log_phase(
     logger: logging.Logger,
     phase: str,
@@ -35,9 +29,6 @@ def log_phase(
     logger.info(f"[DTS:{phase}] {prefix}{message}")
 
 
-# -----------------------------------------------------------------------------
-# Message Formatting
-# -----------------------------------------------------------------------------
 def format_message_history(messages: list[Message]) -> str:
     """
     Format conversation messages into a readable string.
@@ -56,9 +47,6 @@ def format_message_history(messages: list[Message]) -> str:
     return "\n\n".join(lines)
 
 
-# -----------------------------------------------------------------------------
-# Event Emission
-# -----------------------------------------------------------------------------
 async def emit_event(
     callback: Callable[..., Coroutine[Any, Any, None] | Any] | None,
     event_type: str,
@@ -86,3 +74,28 @@ async def emit_event(
     except Exception as e:
         if logger:
             logger.warning(f"Event callback error: {e}")
+
+
+def create_event_emitter(
+    callback: Callable[..., Coroutine[Any, Any, None] | Any] | None,
+    logger: logging.Logger,
+) -> Callable[[str, dict[str, Any]], None]:
+    """
+    Create a fire-and-forget event emitter function.
+
+    Used by components to emit events without awaiting. The returned function
+    creates an asyncio task to handle the event asynchronously.
+
+    Args:
+        callback: Optional async event callback function.
+        logger: Logger for error reporting.
+
+    Returns:
+        A sync function that emits events via asyncio.create_task.
+    """
+
+    def emit(event_type: str, data: dict[str, Any]) -> None:
+        if callback is not None:
+            asyncio.create_task(emit_event(callback, event_type, data, logger))
+
+    return emit

@@ -1,36 +1,27 @@
 """Deep research component using GPT Researcher."""
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import json
 import os
-from collections.abc import Awaitable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
-from backend.core.dts.utils import emit_event, log_phase
-from backend.utils.logging import logger
+from backend.core.dts.utils import create_event_emitter, log_phase
 from backend.llm.types import Message
 from backend.utils.config import config
+from backend.utils.logging import logger
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
     from backend.llm.client import LLM
 
-
-# -----------------------------------------------------------------------------
-# Type Aliases
-# -----------------------------------------------------------------------------
-EventCallback = Callable[[str, dict[str, Any]], Awaitable[None]]
+    EventCallback = Callable[[str, dict[str, Any]], Awaitable[None]]
 
 
-# -----------------------------------------------------------------------------
-# Class: DeepResearcher
-# -----------------------------------------------------------------------------
 class DeepResearcher:
     """
     Conducts deep research using gpt-researcher package.
@@ -72,9 +63,7 @@ Write a single sentence research query that will help gather relevant domain kno
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._sem = asyncio.Semaphore(max_concurrent_research)
         self._on_cost = on_cost
-        self._on_event = on_event
-
-    # --- Public Methods ---
+        self._emit = create_event_emitter(on_event, logger)
 
     async def research(
         self,
@@ -183,13 +172,6 @@ Write a single sentence research query that will help gather relevant domain kno
             raise RuntimeError(
                 "gpt-researcher not installed. Run: pip install gpt-researcher"
             )
-
-    # --- Private Methods ---
-
-    def _emit(self, event_type: str, data: dict[str, Any]) -> None:
-        """Emit an event if callback is set (fire-and-forget)."""
-        if self._on_event is not None:
-            asyncio.create_task(emit_event(self._on_event, event_type, data, logger))
 
     def _setup_environment(self) -> None:
         """

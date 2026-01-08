@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -40,40 +41,19 @@ def create_dts_config(request: SearchRequest) -> DTSConfig:
 
 
 async def run_dts_session(request: SearchRequest) -> AsyncIterator[dict[str, Any]]:
-    """
-    Run a DTS search session and yield events.
-
-    This is the main orchestration function that:
-    1. Creates the LLM client with proper config
-    2. Creates the DTSConfig from the request
-    3. Runs the engine and streams events
-
-    Args:
-        request: Validated search request from API
-
-    Yields:
-        Event dictionaries to send over WebSocket
-    """
-    # Create components
+    """Run a DTS search session and yield events via async queue."""
     llm = create_llm_client()
     dts_config = create_dts_config(request)
     engine = DTSEngine(llm=llm, config=dts_config)
 
-    # Collect events via callback and yield them
-    # Using an async queue to bridge callback to generator
-    import asyncio
-
     event_queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
 
     async def event_callback(event_type: str, data: dict[str, Any]) -> None:
-        """Callback that puts events into the queue."""
         await event_queue.put({"type": event_type, "data": data})
 
     engine.set_event_callback(event_callback)
 
-    # Run engine in background task
     async def run_engine() -> dict[str, Any]:
-        """Run the engine and return result."""
         try:
             result = await engine.run(rounds=request.rounds)
             return {
@@ -91,26 +71,20 @@ async def run_dts_session(request: SearchRequest) -> AsyncIterator[dict[str, Any
             logger.exception("Engine run failed")
             raise
 
-    # Start engine task
     engine_task = asyncio.create_task(run_engine())
 
-    # Yield events as they come in
     try:
         while True:
-            # Check if engine is done
             if engine_task.done():
-                # Drain remaining events
                 while not event_queue.empty():
                     event = await event_queue.get()
                     if event is not None:
                         yield event
 
-                # Get result or raise exception
                 result = await engine_task
                 yield {"type": "complete", "data": result}
                 break
 
-            # Wait for next event with timeout
             try:
                 event = await asyncio.wait_for(event_queue.get(), timeout=0.1)
                 if event is not None:

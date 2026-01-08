@@ -1,28 +1,22 @@
 """Trajectory evaluation component for DTS."""
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any, Callable
 
 from backend.core.dts.aggregator import aggregate_majority_vote
-from backend.utils.logging import logger
 from backend.core.dts.retry import llm_retry
 from backend.core.dts.types import AggregatedScore, DialogueNode
 from backend.core.dts.utils import format_message_history, log_phase
 from backend.core.prompts import prompts
 from backend.llm.types import Message
+from backend.utils.logging import logger
 
 if TYPE_CHECKING:
     from backend.llm.client import LLM
 
 
-# -----------------------------------------------------------------------------
-# Class: TrajectoryEvaluator
-# -----------------------------------------------------------------------------
 class TrajectoryEvaluator:
     """
     Evaluates conversation trajectories using LLM judges.
