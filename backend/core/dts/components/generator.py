@@ -6,10 +6,10 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, Any, Callable
 
 from backend.core.dts.retry import llm_retry
+from backend.utils.logging import logger
 from backend.core.dts.types import Strategy, UserIntent
 from backend.core.dts.utils import format_message_history
 from backend.core.prompts import prompts
@@ -18,10 +18,6 @@ from backend.llm.types import Message
 if TYPE_CHECKING:
     from backend.llm.client import LLM
 
-# -----------------------------------------------------------------------------
-# Module Setup
-# -----------------------------------------------------------------------------
-logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 # Fixed Intent (used when user_variability=False)

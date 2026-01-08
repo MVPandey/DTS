@@ -9,6 +9,9 @@
 
 DTS explores conversation strategies in parallel, simulates diverse user reactions, scores trajectories with multi-judge consensus, and prunes underperformers—finding optimal dialogue paths that single-shot LLM responses miss.
 
+![DTS Visualizer](media/comprehensive_ss.png)
+*Real-time tree exploration with strategy scoring, conversation playback, and detailed evaluation breakdowns*
+
 ---
 
 ## Table of Contents
@@ -101,6 +104,9 @@ graph TD
     M -->|Score < 6.5| Prune[Prune Branch]
 ```
 
+![Tree Visualization](media/just_tree_ss.png)
+*Branches are color-coded by score: green (passing), yellow (borderline), red (pruned)*
+
 **Key parameters:**
 - `init_branches`: Number of initial strategies (default: 6)
 - `turns_per_branch`: Conversation depth per branch (default: 5)
@@ -158,7 +164,30 @@ Judge 3: 8.1  ─┘
 - Conversation flow
 - Strategic effectiveness
 
+<table>
+<tr>
+<td width="50%">
+
+**High-Scoring Branch (9.2/10)**
+
+![High-scoring branch](media/selected_branch_ss.png)
+
+</td>
+<td width="50%">
+
+**Pruned Branch (4.1/10)**
+
+![Pruned branch](media/pruned_branch_ss.png)
+
+</td>
+</tr>
+</table>
+
+*Left: A successful trajectory with detailed strengths. Right: A pruned branch showing weaknesses and why it failed.*
+
 ### Scoring Modes: Comparative vs Absolute
+
+![Scoring Mode Selection](media/scoring_ss.png)
 
 DTS supports two evaluation modes:
 
@@ -626,9 +655,15 @@ FastAPI auto-generates OpenAPI docs at `http://localhost:8000/docs`.
 
 The included frontend (`frontend/index.html`) provides real-time visualization:
 
+![Configuration Panel](media/parameters_ss.png)
+*Configuration panel with basic parameters, deep research toggle, and user variability settings*
+
 ### Features
 
-- **Configuration Panel**: Set goal, parameters, and models
+- **Configuration Panel**: Set goal, branches, turns, rounds, and model settings
+- **Deep Research Toggle**: Enable/disable GPT-Researcher integration
+- **Reasoning Mode**: Auto-detect or manually set reasoning effort
+- **User Variability**: Toggle between diverse user personas or fixed behavior
 - **Live Progress**: Watch strategies generate and branches expand
 - **Branch Browser**: Explore all trajectories with full transcripts
 - **Score Details**: See individual judge scores and critiques

@@ -24,7 +24,7 @@ class Config(BaseSettings):
 
     # LLM client settings
     llm_timeout: float = Field(
-        default=60.0,
+        default=120.0,
         description="Request timeout in seconds for LLM calls",
     )
     llm_max_retries: int = Field(
@@ -91,20 +91,30 @@ class Config(BaseSettings):
         description="Maximum concurrent research tasks",
     )
     total_words: int = Field(
-        default=5000,
-        description="Target word count for research report",
+        default=12000,
+        description="Target word count for research report (higher = more comprehensive)",
+    )
+    max_subtopics: int = Field(
+        default=8,
+        description="Maximum number of subtopics for detailed reports",
+    )
+    max_iterations: int = Field(
+        default=5,
+        description="Maximum research iterations per subtopic",
+    )
+    max_search_results: int = Field(
+        default=10,
+        description="Maximum search results per query",
+    )
+    report_format: str = Field(
+        default="markdown",
+        description="Report format (markdown, APA, etc.)",
+    )
+    smart_token_limit: int = Field(
+        default=32000,
+        description="Token limit for smart LLM model in gpt-researcher",
     )
 
-    embedding_base_url: str = Field(
-        default="https://openrouter.ai/api/v1", description="Base URL for embedding API"
-    )
-    embedding_api_key: str = Field(
-        default="",
-        description="API key for embedding service (defaults to OPENAI_API_KEY if not set)",
-    )
-    embedding_model_name: str = Field(
-        default="openai/text-embedding-3-small", description="Embedding model name"
-    )
     llm_provider: str | None = Field(default="fireworks", description="LLM provider")
     logging_level: str = Field(default="INFO", description="Logging level")
     debug: bool = Field(default=False, description="Debug mode")

@@ -6,10 +6,10 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Callable, Awaitable
 
 from backend.core.dts.config import DTSConfig
+from backend.utils.logging import logger
 from backend.core.dts.components.evaluator import TrajectoryEvaluator
 from backend.core.dts.components.generator import StrategyGenerator
 from backend.core.dts.components.researcher import DeepResearcher
@@ -26,10 +26,6 @@ from backend.core.dts.utils import emit_event, log_phase
 from backend.llm.client import LLM
 from backend.llm.types import Completion, Message
 
-# -----------------------------------------------------------------------------
-# Module Setup
-# -----------------------------------------------------------------------------
-logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 # Type Aliases
@@ -275,9 +271,7 @@ class DTSEngine:
 
                 intents_per_node = 1
 
-                async def fixed_intent_fn(
-                    history: list, count: int
-                ) -> list:
+                async def fixed_intent_fn(history: list, count: int) -> list:
                     return [FIXED_INTENT]
 
                 generate_intents_fn = fixed_intent_fn

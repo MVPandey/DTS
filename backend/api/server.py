@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import time
 from pathlib import Path
 from typing import Any
 
 import httpx
+
+from backend.utils.logging import logger
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -22,7 +23,6 @@ from backend.utils.config import config
 _models_cache: dict[str, Any] = {"data": None, "timestamp": 0}
 MODELS_CACHE_TTL = 300  # 5 minutes
 
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title="DTS Visualizer API", version="0.1.0")
 

@@ -20,11 +20,7 @@ from backend.llm.errors import (
     ServerError,
     TimeoutError,
 )
-
-# -----------------------------------------------------------------------------
-# Module Setup
-# -----------------------------------------------------------------------------
-logger = logging.getLogger(__name__)
+from backend.utils.logging import logger
 
 
 # -----------------------------------------------------------------------------

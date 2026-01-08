@@ -2,11 +2,12 @@
 # Imports
 # -----------------------------------------------------------------------------
 import json
-import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
 from openai import AsyncOpenAI, APIError, AuthenticationError as OpenAIAuthError
+
+from backend.utils.logging import logger
 from openai import RateLimitError as OpenAIRateLimitError
 
 from ..utils.config import config
@@ -24,10 +25,6 @@ from .errors import (
 from .tools import Tool, ToolRegistry
 from .types import Completion, Function, Message, ToolCall, Usage
 
-# -----------------------------------------------------------------------------
-# Module Setup
-# -----------------------------------------------------------------------------
-logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 # Class: LLM
@@ -182,7 +179,9 @@ class LLM:
                     if choice and hasattr(choice.message, "reasoning"):
                         reasoning = choice.message.reasoning
                         if reasoning:
-                            logger.warning(f"Content empty but found reasoning: {reasoning[:200]}...")
+                            logger.warning(
+                                f"Content empty but found reasoning: {reasoning[:200]}..."
+                            )
 
                     last_error = JSONParseError(
                         f"Empty response content. Model: {response.model}, "
@@ -201,7 +200,9 @@ class LLM:
                 try:
                     completion.data = json.loads(content)
                 except json.JSONDecodeError as e:
-                    last_error = JSONParseError(f"Invalid JSON: {e}\nContent: {content[:500]}")
+                    last_error = JSONParseError(
+                        f"Invalid JSON: {e}\nContent: {content[:500]}"
+                    )
                     if attempt < attempts - 1:
                         continue
                     raise last_error from e

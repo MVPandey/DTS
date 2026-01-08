@@ -124,10 +124,10 @@ Output format:
         if user_intent:
             intent_section = f"""
 You MUST embody this specific intent:
-- Label: {user_intent.get('label', '')}
-- Description: {user_intent.get('description', '')}
-- Emotional tone: {user_intent.get('emotional_tone', '')}
-- Cognitive stance: {user_intent.get('cognitive_stance', '')}
+- Label: {user_intent.get("label", "")}
+- Description: {user_intent.get("description", "")}
+- Emotional tone: {user_intent.get("emotional_tone", "")}
+- Cognitive stance: {user_intent.get("cognitive_stance", "")}
 """
 
         system = f"""You are simulating a user in a conversation. Respond authentically as they would - not as an idealized or overly cooperative version.
@@ -178,7 +178,9 @@ Guidelines:
 
 Output the next assistant message only. No meta-commentary, no JSON."""
 
-        user = "Continue the conversation as the assistant. Generate your next response."
+        user = (
+            "Continue the conversation as the assistant. Generate your next response."
+        )
 
         return system, user
 

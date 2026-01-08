@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, Any, Callable
+
+from backend.utils.logging import logger
 
 from tenacity import (
     retry,
@@ -25,11 +26,6 @@ from backend.llm.types import Completion, Message
 if TYPE_CHECKING:
     from backend.llm.client import LLM
     from backend.core.dts.tree import DialogueTree
-
-# -----------------------------------------------------------------------------
-# Module Setup
-# -----------------------------------------------------------------------------
-logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------------------------------
@@ -430,7 +426,9 @@ class ConversationSimulator:
         )
 
         # System prompt + conversation history + continuation request
-        messages = [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
+        messages = (
+            [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
+        )
         return await self._call_llm_with_retry(messages, phase="user")
 
     async def _generate_assistant(
@@ -446,7 +444,9 @@ class ConversationSimulator:
         )
 
         # System prompt + conversation history + continuation request
-        messages = [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
+        messages = (
+            [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
+        )
         return await self._call_llm_with_retry(messages, phase="assistant")
 
     async def _call_llm_with_retry(

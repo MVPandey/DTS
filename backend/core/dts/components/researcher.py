@@ -8,23 +8,19 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import logging
 import os
 from collections.abc import Awaitable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 from backend.core.dts.utils import emit_event, log_phase
+from backend.utils.logging import logger
 from backend.llm.types import Message
 from backend.utils.config import config
 
 if TYPE_CHECKING:
     from backend.llm.client import LLM
 
-# -----------------------------------------------------------------------------
-# Module Setup
-# -----------------------------------------------------------------------------
-logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 # Type Aliases
@@ -142,7 +138,6 @@ Write a single sentence research query that will help gather relevant domain kno
             researcher = GPTResearcher(
                 query=query,
                 report_type=report_type,
-                max_sources=10,
             )
 
             # Rate limit concurrent research requests
@@ -208,8 +203,9 @@ Write a single sentence research query that will help gather relevant domain kno
             f"API keys present - OpenAI: {bool(config.openai_api_key)}, Firecrawl: {bool(config.firecrawl_api_key)}"
         )
 
-        # OpenRouter API key
+        # OpenRouter API key - gpt-researcher needs OPENAI_API_KEY set
         if config.openai_api_key:
+            os.environ["OPENAI_API_KEY"] = config.openai_api_key
             os.environ["OPENROUTER_API_KEY"] = config.openrouter_api_key
             os.environ["OPENAI_BASE_URL"] = config.openai_base_url
             logger.debug(f"Set OPENAI_BASE_URL: {config.openai_base_url}")
@@ -221,6 +217,7 @@ Write a single sentence research query that will help gather relevant domain kno
             os.environ["SMART_LLM"] = config.smart_llm
         if config.strategic_llm:
             os.environ["STRATEGIC_LLM"] = config.strategic_llm
+        os.environ["SMART_TOKEN_LIMIT"] = str(config.smart_token_limit)
 
         # Web scraper configuration
         if config.scraper:
@@ -229,17 +226,20 @@ Write a single sentence research query that will help gather relevant domain kno
             os.environ["FIRECRAWL_API_KEY"] = config.firecrawl_api_key
         os.environ["MAX_SCRAPER_WORKERS"] = str(config.max_scraper_workers)
 
-        # Embedding configuration
-        if config.embedding_api_key:
-            os.environ["EMBEDDING_API_KEY"] = config.embedding_api_key
-        if config.embedding_model_name:
-            os.environ["EMBEDDING_MODEL"] = config.embedding_model_name
+        # Embedding config - use custom provider to route through OpenRouter
+        os.environ["EMBEDDING"] = f"custom:{config.embedding_model}"
 
         # Deep research parameters
         os.environ["BREADTH"] = str(config.deep_research_breadth)
         os.environ["DEPTH"] = str(config.deep_research_depth)
         os.environ["CONCURRENCY"] = str(config.deep_research_concurrency)
         os.environ["TOTAL_WORDS"] = str(config.total_words)
+
+        # Comprehensive report parameters
+        os.environ["MAX_SUBTOPICS"] = str(config.max_subtopics)
+        os.environ["MAX_ITERATIONS"] = str(config.max_iterations)
+        os.environ["MAX_SEARCH_RESULTS_PER_QUERY"] = str(config.max_search_results)
+        os.environ["REPORT_FORMAT"] = config.report_format
 
         logger.debug("Environment setup complete")
 

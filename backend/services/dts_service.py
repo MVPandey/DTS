@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -11,8 +10,7 @@ from backend.core.dts.config import DTSConfig
 from backend.core.dts.engine import DTSEngine
 from backend.llm.client import LLM
 from backend.utils.config import config
-
-logger = logging.getLogger(__name__)
+from backend.utils.logging import logger
 
 
 def create_llm_client() -> LLM:

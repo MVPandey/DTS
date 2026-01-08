@@ -234,6 +234,11 @@ export function ConfigForm() {
                 <Switch checked={userVariability} onCheckedChange={setUserVariability} disabled={isRunning} />
                 <span className="ml-2 text-xs text-muted-foreground">{userVariability ? 'Diverse' : 'Fixed'}</span>
               </div>
+              <p className="text-xs text-red-500">
+                {userVariability
+                  ? 'Simulates multiple user personas per branch to test robustness'
+                  : 'Uses a single consistent user persona across all branches'}
+              </p>
             </div>
           </div>
         </CardContent>

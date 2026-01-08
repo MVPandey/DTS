@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum
@@ -16,11 +15,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from backend.llm.types import Message, Usage
-
-# -----------------------------------------------------------------------------
-# Module Setup
-# -----------------------------------------------------------------------------
-logger = logging.getLogger(__name__)
+from backend.utils.logging import logger
 
 # -----------------------------------------------------------------------------
 # Pricing Models
