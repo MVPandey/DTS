@@ -218,7 +218,7 @@ The PR description should reference the issue with `Closes #<issue-number>`.
 ## Project Structure
 
 ```
-MCTS/
+DTS/
 ├── backend/
 │   ├── api/          # FastAPI server and endpoints
 │   ├── core/
