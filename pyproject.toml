@@ -18,3 +18,115 @@ dependencies = [
     "httpx>=0.28.0",
     "firecrawl>=4.12.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=4.0.0",
+    "mypy>=1.14.0",
+    "pytest-cov>=6.0.0",
+    "types-requests>=2.32.0",
+]
+
+# ============================================================================
+# Ruff Configuration
+# ============================================================================
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    "gpt-researcher",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "B905",   # zip without strict
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+# ============================================================================
+# MyPy Configuration
+# ============================================================================
+# NOTE: Full type checking is tracked in Issue #10. Current config is lenient
+# to allow commits while type hints are being added incrementally.
+[tool.mypy]
+python_version = "3.11"
+strict = false
+# Relaxed settings until Issue #10 is complete
+warn_return_any = false
+warn_unused_ignores = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+# Show errors but don't fail the build (until type hints are comprehensive)
+# Remove this line once Issue #10 is complete
+ignore_errors = true
+exclude = [
+    "^\\.venv/",
+    "^venv/",
+    "^gpt-researcher/",
+    "^tests/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "firecrawl.*",
+    "tenacity.*",
+    "loguru.*",
+    "gpt_researcher.*",
+    "openai.*",
+    "httpx.*",
+    "fastapi.*",
+    "uvicorn.*",
+    "pydantic_settings.*",
+]
+ignore_missing_imports = true
+
+# ============================================================================
+# Pytest Configuration
+# ============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["backend"]
+omit = ["tests/*", ".venv/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]

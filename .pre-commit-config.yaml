@@ -1,0 +1,54 @@
+# Pre-commit hooks for DTS
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # Ruff - Linting and Formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        name: ruff (lint)
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        name: ruff (format)
+
+  # MyPy - Type Checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        name: mypy (type check)
+        additional_dependencies:
+          - pydantic>=2.0
+          - types-requests
+        args: [--config-file=pyproject.toml]
+
+  # Conventional Commits - Commit Message Format
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        name: conventional commits
+        stages: [commit-msg]
+        args:
+          - feat
+          - fix
+          - docs
+          - style
+          - refactor
+          - perf
+          - test
+          - build
+          - ci
+          - chore
+          - revert
+
+  # Unit Tests (placeholder - always passes until tests are added)
+  - repo: local
+    hooks:
+      - id: pytest-placeholder
+        name: pytest (placeholder)
+        entry: bash -c 'echo "Unit tests not yet implemented - passing by default" && exit 0'
+        language: system
+        pass_filenames: false
+        always_run: true

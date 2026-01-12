@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-
-from backend.utils.logging import logger
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -18,6 +16,7 @@ from pydantic import ValidationError
 from backend.api.schemas import SearchRequest
 from backend.services.dts_service import run_dts_session
 from backend.utils.config import config
+from backend.utils.logging import logger
 
 # Models cache (5-minute TTL)
 _models_cache: dict[str, Any] = {"data": None, "timestamp": 0}

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from tenacity import (
     retry,
@@ -132,9 +133,7 @@ class ConversationSimulator:
         )
 
         # Generate intents for all nodes in parallel
-        intent_tasks = [
-            generate_intents(node.messages, intents_per_node) for node in nodes
-        ]
+        intent_tasks = [generate_intents(node.messages, intents_per_node) for node in nodes]
         all_intents = await asyncio.gather(*intent_tasks, return_exceptions=True)
 
         # Build expansion workload
@@ -143,17 +142,13 @@ class ConversationSimulator:
 
         for node, intents_result in zip(nodes, all_intents):
             if isinstance(intents_result, Exception) or not intents_result:
-                logger.warning(
-                    f"Intent generation failed for {node.id}, linear expansion"
-                )
+                logger.warning(f"Intent generation failed for {node.id}, linear expansion")
                 fallback_nodes.append(node)
                 continue
 
             intents = intents_result
             strategy_name = node.strategy.tagline if node.strategy else "root"
-            log_phase(
-                logger, "FORK", f"'{strategy_name}': {len(intents)} intents", indent=2
-            )
+            log_phase(logger, "FORK", f"'{strategy_name}': {len(intents)} intents", indent=2)
 
             for idx, intent in enumerate(intents):
                 log_phase(
@@ -195,9 +190,7 @@ class ConversationSimulator:
             expansion_tasks.append(self._expand_linear(node, turns))
 
         # Execute all expansions with as_completed
-        log_phase(
-            logger, "FORK", f"Expanding {len(expansion_tasks)} branches...", indent=1
-        )
+        log_phase(logger, "FORK", f"Expanding {len(expansion_tasks)} branches...", indent=1)
 
         expanded = []
         completed = 0
@@ -211,16 +204,14 @@ class ConversationSimulator:
                 if isinstance(result, DialogueNode):
                     expanded.append(result)
                     completed += 1
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning("Expansion timed out")
                 failed += 1
             except Exception as e:
                 logger.error(f"Expansion error: {e}")
                 failed += 1
 
-        log_phase(
-            logger, "FORK", f"Completed: {completed} | Failed: {failed}", indent=1
-        )
+        log_phase(logger, "FORK", f"Completed: {completed} | Failed: {failed}", indent=1)
         return expanded
 
     async def _expand_linear_batch(
@@ -337,9 +328,7 @@ class ConversationSimulator:
         if history and history[0].role == "user":
             original_content = history[0].content or ""
             try:
-                rephrased = await self._rephrase_initial_message(
-                    original_content, first_intent
-                )
+                rephrased = await self._rephrase_initial_message(original_content, first_intent)
                 history[0] = Message.user(rephrased)
                 log_phase(
                     logger,
@@ -358,17 +347,13 @@ class ConversationSimulator:
         for turn_idx in range(turns):
             # First turn skips user simulation (message already rephrased)
             skip_user = turn_idx == 0
-            if not await self._run_turn(
-                node, history, turn_idx, skip_user, first_intent.label
-            ):
+            if not await self._run_turn(node, history, turn_idx, skip_user, first_intent.label):
                 break
 
         node.messages = history
         return node
 
-    async def _rephrase_initial_message(
-        self, original_message: str, intent: UserIntent
-    ) -> str:
+    async def _rephrase_initial_message(self, original_message: str, intent: UserIntent) -> str:
         """
         Rephrase the initial user message to incorporate the intent.
 
@@ -407,9 +392,7 @@ class ConversationSimulator:
         )
 
         # System prompt + conversation history + continuation request
-        messages = (
-            [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
-        )
+        messages = [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
         return await self._call_llm_with_retry(messages, phase="user")
 
     async def _generate_assistant(
@@ -425,9 +408,7 @@ class ConversationSimulator:
         )
 
         # System prompt + conversation history + continuation request
-        messages = (
-            [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
-        )
+        messages = [Message.system(system_prompt)] + history + [Message.user(user_prompt)]
         return await self._call_llm_with_retry(messages, phase="assistant")
 
     async def _call_llm_with_retry(
@@ -474,16 +455,11 @@ class ConversationSimulator:
                 return True
 
         # Short frustrated responses
-        if len(response_lower) < 20 and any(
+        return len(response_lower) < 20 and any(
             w in response_lower for w in ["no", "nope", "wrong", "bad", "ugh"]
-        ):
-            return True
+        )
 
-        return False
-
-    async def _call_llm(
-        self, messages: list[Message], phase: str = "other"
-    ) -> Completion:
+    async def _call_llm(self, messages: list[Message], phase: str = "other") -> Completion:
         """Make an LLM call."""
         async with self._sem:
             completion = await self.llm.complete(

@@ -14,32 +14,22 @@ class SearchRequest(BaseModel):
 
     goal: str = Field(..., description="Conversation goal/objective")
     first_message: str = Field(..., description="Initial user message")
-    init_branches: int = Field(
-        default=6, ge=1, le=20, description="Initial strategy branches"
-    )
-    turns_per_branch: int = Field(
-        default=5, ge=1, le=20, description="Turns per expansion"
-    )
+    init_branches: int = Field(default=6, ge=1, le=20, description="Initial strategy branches")
+    turns_per_branch: int = Field(default=5, ge=1, le=20, description="Turns per expansion")
     user_intents_per_branch: int = Field(
         default=3, ge=1, le=10, description="User intent forks per branch"
     )
     scoring_mode: ScoringMode = Field(default="comparative", description="Scoring mode")
-    prune_threshold: float = Field(
-        default=6.5, ge=0.0, le=10.0, description="Pruning threshold"
-    )
+    prune_threshold: float = Field(default=6.5, ge=0.0, le=10.0, description="Pruning threshold")
     rounds: int = Field(default=1, ge=1, le=10, description="Number of search rounds")
-    deep_research: bool = Field(
-        default=False, description="Enable deep research context"
-    )
+    deep_research: bool = Field(default=False, description="Enable deep research context")
     strategy_model: str | None = Field(
         default=None, description="Model for strategy/intent generation"
     )
     simulator_model: str | None = Field(
         default=None, description="Model for conversation simulation"
     )
-    judge_model: str | None = Field(
-        default=None, description="Model for trajectory evaluation"
-    )
+    judge_model: str | None = Field(default=None, description="Model for trajectory evaluation")
 
 
 class EventMessage(BaseModel):

@@ -1,12 +1,11 @@
+from typing import Self
+
 from pydantic import Field, PostgresDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Self
 
 
 class Config(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     openai_base_url: str = Field(
         default="https://openrouter.ai/api/v1",

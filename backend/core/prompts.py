@@ -178,9 +178,7 @@ Guidelines:
 
 Output the next assistant message only. No meta-commentary, no JSON."""
 
-        user = (
-            "Continue the conversation as the assistant. Generate your next response."
-        )
+        user = "Continue the conversation as the assistant. Generate your next response."
 
         return system, user
 
@@ -350,7 +348,9 @@ You must output valid JSON only. No markdown code fences, no preamble."""
         # Format trajectories
         traj_text = ""
         for t in trajectories:
-            traj_text += f"\n--- Trajectory {t['id']} (intent: {t.get('intent_label', 'unknown')}) ---\n"
+            traj_text += (
+                f"\n--- Trajectory {t['id']} (intent: {t.get('intent_label', 'unknown')}) ---\n"
+            )
             traj_text += t["history"]
             traj_text += "\n"
 

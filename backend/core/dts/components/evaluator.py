@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from backend.core.dts.aggregator import aggregate_majority_vote
 from backend.core.dts.retry import llm_retry
@@ -155,9 +156,7 @@ class TrajectoryEvaluator:
 
         return scores_by_id
 
-    async def _judge_single(
-        self, node: DialogueNode
-    ) -> tuple[AggregatedScore, dict | None]:
+    async def _judge_single(self, node: DialogueNode) -> tuple[AggregatedScore, dict | None]:
         """Run 3 parallel judges on a single trajectory. Returns (score, critiques)."""
         history_str = format_message_history(node.messages)
 
@@ -205,9 +204,7 @@ class TrajectoryEvaluator:
                 "weaknesses": [],
                 "key_moment": median_result.get("key_turning_point"),
                 "summary": median_result.get("summary"),
-                "biggest_missed_opportunity": median_result.get(
-                    "biggest_missed_opportunity"
-                ),
+                "biggest_missed_opportunity": median_result.get("biggest_missed_opportunity"),
             }
             # Extract weaknesses from low-scoring criteria
             criteria = median_result.get("criteria", {})
@@ -222,9 +219,7 @@ class TrajectoryEvaluator:
 
         return agg, critiques
 
-    async def _judge_single_wrapped(
-        self, node: DialogueNode
-    ) -> dict[str, AggregatedScore]:
+    async def _judge_single_wrapped(self, node: DialogueNode) -> dict[str, AggregatedScore]:
         """Wrapper to return dict format for gather."""
         agg, critiques = await self._judge_single(node)
         node.stats.judge_scores = agg.individual_scores
@@ -249,9 +244,7 @@ class TrajectoryEvaluator:
             trajectories.append(
                 {
                     "id": node.id,
-                    "intent_label": node.user_intent.label
-                    if node.user_intent
-                    else "unknown",
+                    "intent_label": node.user_intent.label if node.user_intent else "unknown",
                     "history": format_message_history(node.messages),
                 }
             )
@@ -266,9 +259,7 @@ class TrajectoryEvaluator:
         scores_by_id: dict[str, AggregatedScore] = {}
 
         if not result or "ranking" not in result:
-            logger.warning(
-                f"Comparative judge failed for {parent_id}, fallback to absolute"
-            )
+            logger.warning(f"Comparative judge failed for {parent_id}, fallback to absolute")
             return await self._fallback_absolute(group)
 
         ranking = result.get("ranking", [])
@@ -332,9 +323,7 @@ class TrajectoryEvaluator:
 
         return scores_by_id
 
-    async def _fallback_absolute(
-        self, group: list[DialogueNode]
-    ) -> dict[str, AggregatedScore]:
+    async def _fallback_absolute(self, group: list[DialogueNode]) -> dict[str, AggregatedScore]:
         """Fallback to absolute scoring for a group."""
         tasks = [self._judge_single(node) for node in group]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -354,9 +343,7 @@ class TrajectoryEvaluator:
 
         return scores_by_id
 
-    async def _call_llm_json(
-        self, system_prompt: str, user_prompt: str
-    ) -> dict[str, Any] | None:
+    async def _call_llm_json(self, system_prompt: str, user_prompt: str) -> dict[str, Any] | None:
         """Make an LLM call expecting JSON output with retry."""
         async with self._sem:
             return await self._call_llm_json_inner(system_prompt, user_prompt)

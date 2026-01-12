@@ -89,7 +89,7 @@ async def run_dts_session(request: SearchRequest) -> AsyncIterator[dict[str, Any
                 event = await asyncio.wait_for(event_queue.get(), timeout=0.1)
                 if event is not None:
                     yield event
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
     except Exception as e:

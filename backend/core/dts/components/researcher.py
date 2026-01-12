@@ -6,8 +6,9 @@ import asyncio
 import hashlib
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from backend.core.dts.utils import create_event_emitter, log_phase
 from backend.llm.types import Message
@@ -168,10 +169,10 @@ Write a single sentence research query that will help gather relevant domain kno
 
             return report
 
-        except ImportError:
+        except ImportError as err:
             raise RuntimeError(
                 "gpt-researcher not installed. Run: pip install gpt-researcher"
-            )
+            ) from err
 
     def _setup_environment(self) -> None:
         """

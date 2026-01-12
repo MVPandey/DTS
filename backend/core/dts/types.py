@@ -42,9 +42,7 @@ def _load_pricing_from_openrouter() -> None:
         return
 
     try:
-        with urllib.request.urlopen(
-            "https://openrouter.ai/api/v1/models", timeout=10
-        ) as response:
+        with urllib.request.urlopen("https://openrouter.ai/api/v1/models", timeout=10) as response:
             data = json.loads(response.read().decode())
 
         for model in data.get("data", []):
@@ -98,7 +96,7 @@ class TokenStats:
             self.total_tokens += usage.total_tokens
             self.request_count += 1
 
-    def merge(self, other: "TokenStats") -> None:
+    def merge(self, other: TokenStats) -> None:
         """Merge another TokenStats into this one."""
         self.input_tokens += other.input_tokens
         self.output_tokens += other.output_tokens
@@ -141,7 +139,7 @@ class TokenTracker:
     # External costs (e.g., GPT Researcher uses its own LLM client)
     research_cost_usd: float = 0.0
 
-    def add_usage(self, model: str, usage: "Usage | None", phase: str) -> None:
+    def add_usage(self, model: str, usage: Usage | None, phase: str) -> None:
         """Track usage for a specific model and phase."""
         if not usage:
             return
@@ -262,13 +260,8 @@ class TokenTracker:
             print("\nBy Model:")
             for model_name, stats in self.by_model.items():
                 pricing = get_model_pricing(model_name)
-                model_cost = pricing.calculate_cost(
-                    stats.input_tokens, stats.output_tokens
-                )
-                print(
-                    f"  {model_name:<35} | {stats.request_count:>4} reqs | "
-                    f"${model_cost:.4f}"
-                )
+                model_cost = pricing.calculate_cost(stats.input_tokens, stats.output_tokens)
+                print(f"  {model_name:<35} | {stats.request_count:>4} reqs | ${model_cost:.4f}")
                 print(
                     f"    Pricing: ${pricing.input_cost_per_million:.2f}/1M in, "
                     f"${pricing.output_cost_per_million:.2f}/1M out"
@@ -324,7 +317,9 @@ class UserIntent(BaseModel):
     id: str
     label: str
     description: str
-    emotional_tone: str  # engaged, resistant, confused, skeptical, enthusiastic, deflecting, anxious, neutral
+    emotional_tone: (
+        str  # engaged, resistant, confused, skeptical, enthusiastic, deflecting, anxious, neutral
+    )
     cognitive_stance: str  # accepting, questioning, challenging, exploring, withdrawing
 
 
@@ -364,7 +359,7 @@ class AggregatedScore(BaseModel):
     passed: bool  # True if pass_votes >= 2
 
     @classmethod
-    def zero(cls, threshold: float = 5.0) -> "AggregatedScore":
+    def zero(cls, threshold: float = 5.0) -> AggregatedScore:
         """Create a zero score for error/fallback cases."""
         return cls(
             individual_scores=[0.0, 0.0, 0.0],
@@ -425,9 +420,7 @@ class DialogueNode(BaseModel):
         """Get user intent label or None."""
         return self.user_intent.label if self.user_intent else None
 
-    def update_with_evaluation(
-        self, score: AggregatedScore, critiques: dict | None = None
-    ) -> None:
+    def update_with_evaluation(self, score: AggregatedScore, critiques: dict | None = None) -> None:
         """Update node stats with evaluation results."""
         self.stats.judge_scores = score.individual_scores
         self.stats.aggregated_score = score.aggregated_score
@@ -514,9 +507,7 @@ class DTSRunResult(BaseModel):
                     "value_mean": node.stats.value_mean,
                     "critiques": node.stats.critiques if node.stats.critiques else None,
                 },
-                "trajectory": [
-                    {"role": msg.role, "content": msg.content} for msg in node.messages
-                ],
+                "trajectory": [{"role": msg.role, "content": msg.content} for msg in node.messages],
                 "prune_reason": node.prune_reason,
             }
             branches.append(branch_data)
@@ -534,8 +525,7 @@ class DTSRunResult(BaseModel):
                         "strategy": node.strategy.tagline if node.strategy else "root",
                         "score": self.best_score,
                         "trajectory": [
-                            {"role": msg.role, "content": msg.content}
-                            for msg in node.messages
+                            {"role": msg.role, "content": msg.content} for msg in node.messages
                         ],
                     }
                     break
