@@ -6,7 +6,11 @@ from typing import Any
 from openai import (
     APIError,
     AsyncOpenAI,
+)
+from openai import (
     AuthenticationError as OpenAIAuthError,
+)
+from openai import (
     RateLimitError as OpenAIRateLimitError,
 )
 
@@ -134,11 +138,8 @@ class LLM:
         if extra_body:
             kwargs["extra_body"] = extra_body
 
-        if structured_output:
-            # Skip response_format for reasoning models as it may conflict
-            # Instead, rely on prompt instructions to get JSON output
-            if not reasoning_enabled:
-                kwargs["response_format"] = {"type": "json_object"}
+        if structured_output and not reasoning_enabled:
+            kwargs["response_format"] = {"type": "json_object"}
             # Note: JSON output instructions are now included in system prompts,
             # so no additional hint message is needed
 
@@ -192,14 +193,14 @@ class LLM:
                 try:
                     completion.data = json.loads(content)
                 except json.JSONDecodeError as e:
-                    last_error = JSONParseError(
-                        f"Invalid JSON: {e}\nContent: {content[:500]}"
-                    )
+                    last_error = JSONParseError(f"Invalid JSON: {e}\nContent: {content[:500]}")
                     if attempt < attempts - 1:
                         continue
                     raise last_error from e
 
             return completion
+
+        raise last_error or JSONParseError("Unexpected: no completion returned")
 
     async def stream(
         self,
@@ -315,17 +316,16 @@ class LLM:
         tool_schemas = registry.schemas
 
         for _ in range(max_iterations):
-            response = await self.complete(
-                message_list, model=model, tools=tool_schemas, **kwargs
-            )
+            response = await self.complete(message_list, model=model, tools=tool_schemas, **kwargs)
 
             if not response.has_tool_calls:
                 return response
 
             message_list.append(response.message)
 
-            tool_messages = await registry.execute_all(response.message.tool_calls)
-            message_list.extend(tool_messages)
+            if response.message.tool_calls:
+                tool_messages = await registry.execute_all(response.message.tool_calls)
+                message_list.extend(tool_messages)
 
         return response
 
@@ -376,9 +376,7 @@ class LLM:
             extra_body["reasoning"] = {"enabled": True}
         return extra_body
 
-    def _prepare_messages(
-        self, messages: list[Message] | Message | str
-    ) -> list[dict[str, Any]]:
+    def _prepare_messages(self, messages: list[Message] | Message | str) -> list[dict[str, Any]]:
         """Convert input to list of message dicts."""
         if isinstance(messages, str):
             return [{"role": "user", "content": messages}]

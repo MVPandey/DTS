@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Iterator
+from collections.abc import Iterator
 
 from pydantic import BaseModel, Field
 
@@ -36,7 +36,7 @@ class DialogueTree(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     @classmethod
-    def create(cls, root_node: DialogueNode) -> "DialogueTree":
+    def create(cls, root_node: DialogueNode) -> DialogueTree:
         """Create a new tree with the given root node."""
         tree = cls(root_id=root_node.id)
         tree.nodes[root_node.id] = root_node
@@ -85,16 +85,12 @@ class DialogueTree(BaseModel):
     def active_leaves(self) -> list[DialogueNode]:
         """Get all active leaf nodes (nodes with no children)."""
         return [
-            n
-            for n in self.nodes.values()
-            if n.status == NodeStatus.ACTIVE and len(n.children) == 0
+            n for n in self.nodes.values() if n.status == NodeStatus.ACTIVE and len(n.children) == 0
         ]
 
     def leaves_at_depth(self, depth: int) -> list[DialogueNode]:
         """Get all leaf nodes at a specific depth."""
-        return [
-            n for n in self.nodes.values() if n.depth == depth and len(n.children) == 0
-        ]
+        return [n for n in self.nodes.values() if n.depth == depth and len(n.children) == 0]
 
     def path_to_root(self, node_id: str) -> list[DialogueNode]:
         """Get the path from a node to the root (inclusive)."""

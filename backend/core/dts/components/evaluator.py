@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from backend.core.dts.aggregator import aggregate_majority_vote
 from backend.core.dts.retry import llm_retry
@@ -151,13 +152,12 @@ class TrajectoryEvaluator:
             if isinstance(result, Exception):
                 logger.error(f"Judge task failed: {result}")
                 continue
-            scores_by_id.update(result)
+            if isinstance(result, dict):
+                scores_by_id.update(result)
 
         return scores_by_id
 
-    async def _judge_single(
-        self, node: DialogueNode
-    ) -> tuple[AggregatedScore, dict | None]:
+    async def _judge_single(self, node: DialogueNode) -> tuple[AggregatedScore, dict | None]:
         """Run 3 parallel judges on a single trajectory. Returns (score, critiques)."""
         history_str = format_message_history(node.messages)
 
@@ -179,7 +179,7 @@ class TrajectoryEvaluator:
                 logger.warning(f"Judge failed: {result}")
                 scores.append(0.0)
                 judge_results.append({})
-            elif result and "total_score" in result:
+            elif isinstance(result, dict) and "total_score" in result:
                 scores.append(float(result["total_score"]))
                 judge_results.append(result)
             else:
@@ -200,15 +200,8 @@ class TrajectoryEvaluator:
 
         if median_result:
             # Normalize absolute judge output to match comparative format
-            critiques = {
-                "strengths": [],
-                "weaknesses": [],
-                "key_moment": median_result.get("key_turning_point"),
-                "summary": median_result.get("summary"),
-                "biggest_missed_opportunity": median_result.get(
-                    "biggest_missed_opportunity"
-                ),
-            }
+            strengths: list[str] = []
+            weaknesses: list[str] = []
             # Extract weaknesses from low-scoring criteria
             criteria = median_result.get("criteria", {})
             for name, data in criteria.items():
@@ -216,15 +209,20 @@ class TrajectoryEvaluator:
                     score = data.get("score", 1.0)
                     rationale = data.get("rationale", "")
                     if score < 0.5 and rationale:
-                        critiques["weaknesses"].append(f"{name}: {rationale}")
+                        weaknesses.append(f"{name}: {rationale}")
                     elif score >= 0.8 and rationale:
-                        critiques["strengths"].append(f"{name}: {rationale}")
+                        strengths.append(f"{name}: {rationale}")
+            critiques = {
+                "strengths": strengths,
+                "weaknesses": weaknesses,
+                "key_moment": median_result.get("key_turning_point"),
+                "summary": median_result.get("summary"),
+                "biggest_missed_opportunity": median_result.get("biggest_missed_opportunity"),
+            }
 
         return agg, critiques
 
-    async def _judge_single_wrapped(
-        self, node: DialogueNode
-    ) -> dict[str, AggregatedScore]:
+    async def _judge_single_wrapped(self, node: DialogueNode) -> dict[str, AggregatedScore]:
         """Wrapper to return dict format for gather."""
         agg, critiques = await self._judge_single(node)
         node.stats.judge_scores = agg.individual_scores
@@ -249,9 +247,7 @@ class TrajectoryEvaluator:
             trajectories.append(
                 {
                     "id": node.id,
-                    "intent_label": node.user_intent.label
-                    if node.user_intent
-                    else "unknown",
+                    "intent_label": node.user_intent.label if node.user_intent else "unknown",
                     "history": format_message_history(node.messages),
                 }
             )
@@ -266,9 +262,7 @@ class TrajectoryEvaluator:
         scores_by_id: dict[str, AggregatedScore] = {}
 
         if not result or "ranking" not in result:
-            logger.warning(
-                f"Comparative judge failed for {parent_id}, fallback to absolute"
-            )
+            logger.warning(f"Comparative judge failed for {parent_id}, fallback to absolute")
             return await self._fallback_absolute(group)
 
         ranking = result.get("ranking", [])
@@ -332,9 +326,7 @@ class TrajectoryEvaluator:
 
         return scores_by_id
 
-    async def _fallback_absolute(
-        self, group: list[DialogueNode]
-    ) -> dict[str, AggregatedScore]:
+    async def _fallback_absolute(self, group: list[DialogueNode]) -> dict[str, AggregatedScore]:
         """Fallback to absolute scoring for a group."""
         tasks = [self._judge_single(node) for node in group]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -354,9 +346,7 @@ class TrajectoryEvaluator:
 
         return scores_by_id
 
-    async def _call_llm_json(
-        self, system_prompt: str, user_prompt: str
-    ) -> dict[str, Any] | None:
+    async def _call_llm_json(self, system_prompt: str, user_prompt: str) -> dict[str, Any] | None:
         """Make an LLM call expecting JSON output with retry."""
         async with self._sem:
             return await self._call_llm_json_inner(system_prompt, user_prompt)

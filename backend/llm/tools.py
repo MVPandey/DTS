@@ -45,8 +45,8 @@ class Tool:
         description: str | None = None,
     ):
         self.fn = fn
-        self.name = name or fn.__name__
-        self.description = description or fn.__doc__ or ""
+        self.name = name or getattr(fn, "__name__", "tool")
+        self.description = description or getattr(fn, "__doc__", "") or ""
         self._is_async = inspect.iscoroutinefunction(fn)
         self._schema: dict[str, Any] | None = None
 

@@ -53,9 +53,7 @@ class DTSConfig:
     research_cache_dir: str = ".cache/research"
     turns_per_branch: int = 5
     user_intents_per_branch: int = 3
-    user_variability: bool = (
-        False  # When False, uses fixed "healthily critical + engaged" persona
-    )
+    user_variability: bool = False  # When False, uses fixed "healthily critical + engaged" persona
     scoring_mode: ScoringMode = "comparative"
     prune_threshold: float = 6.5
     keep_top_k: int | None = None

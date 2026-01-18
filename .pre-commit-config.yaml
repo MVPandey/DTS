@@ -1,0 +1,45 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.2
+    hooks:
+      - id: ruff
+        name: ruff (lint)
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        name: ruff (format)
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty (type check)
+        entry: ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: [--error-on-warning]
+
+  - repo: local
+    hooks:
+      - id: pytest-cov
+        name: pytest (coverage)
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        args:
+          - --cov=backend
+          - --cov-report=term-missing
+          - --cov-fail-under=0
+          - -q
+        stages: [pre-push]
+
+  - repo: local
+    hooks:
+      - id: pytest-quick
+        name: pytest (quick)
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: [-q, --tb=short, -x]
+        stages: [pre-commit]

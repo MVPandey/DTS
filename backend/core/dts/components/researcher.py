@@ -6,8 +6,9 @@ import asyncio
 import hashlib
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from backend.core.dts.utils import create_event_emitter, log_phase
 from backend.llm.types import Message
@@ -15,11 +16,13 @@ from backend.utils.config import config
 from backend.utils.logging import logger
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
+    from collections.abc import Awaitable, Coroutine
 
     from backend.llm.client import LLM
 
-    EventCallback = Callable[[str, dict[str, Any]], Awaitable[None]]
+    EventCallback = Callable[
+        [str, dict[str, Any]], Awaitable[None] | Coroutine[Any, Any, None] | None
+    ]
 
 
 class DeepResearcher:
@@ -171,7 +174,7 @@ Write a single sentence research query that will help gather relevant domain kno
         except ImportError:
             raise RuntimeError(
                 "gpt-researcher not installed. Run: pip install gpt-researcher"
-            )
+            ) from None
 
     def _setup_environment(self) -> None:
         """

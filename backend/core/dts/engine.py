@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from backend.core.dts.components.evaluator import TrajectoryEvaluator
 from backend.core.dts.components.generator import FIXED_INTENT, StrategyGenerator
@@ -187,9 +188,7 @@ class DTSEngine:
 
         # Initialize tree
         log_phase(logger, "INIT", "Creating tree structure...")
-        self._emit(
-            "phase", {"phase": "initializing", "message": "Creating tree structure..."}
-        )
+        self._emit("phase", {"phase": "initializing", "message": "Creating tree structure..."})
         tree = await self._initialize_tree()
         self._tree = tree
 
@@ -258,7 +257,7 @@ class DTSEngine:
                 # Use fixed "healthily critical + engaged" persona (no API call)
                 intents_per_node = 1
 
-                async def fixed_intent_fn(history: list, count: int) -> list:
+                async def fixed_intent_fn(_history: list, _count: int) -> list:
                     return [FIXED_INTENT]
 
                 generate_intents_fn = fixed_intent_fn
@@ -270,9 +269,7 @@ class DTSEngine:
                 tree=tree,
                 generate_intents=generate_intents_fn,
             )
-            log_phase(
-                logger, "EXPAND", f"Completed {len(expanded)} expansions", indent=1
-            )
+            log_phase(logger, "EXPAND", f"Completed {len(expanded)} expansions", indent=1)
 
             # Emit node_added events for expanded nodes
             for node in expanded:
@@ -434,9 +431,7 @@ class DTSEngine:
     def _emit(self, event_type: str, data: dict) -> None:
         """Emit an event if callback is set (fire-and-forget)."""
         if self._event_callback is not None:
-            asyncio.create_task(
-                emit_event(self._event_callback, event_type, data, logger)
-            )
+            asyncio.create_task(emit_event(self._event_callback, event_type, data, logger))
 
     async def _initialize_tree(self) -> DialogueTree:
         """Initialize tree with root and initial strategy branches."""
@@ -583,9 +578,7 @@ class DTSEngine:
                 n.status = NodeStatus.PRUNED
                 score = scores.get(n.id)
                 if score:
-                    n.prune_reason = (
-                        f"score {score.aggregated_score:.1f} < {cfg.prune_threshold}"
-                    )
+                    n.prune_reason = f"score {score.aggregated_score:.1f} < {cfg.prune_threshold}"
                 else:
                     n.prune_reason = "scoring failed"
 
